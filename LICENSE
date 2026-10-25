@@ -1,0 +1,165 @@
+Catalyst Developer License
+Version 1.0 — 25 October 2026
+
+Copyright (c) 2026 Jupiter Jones & BenjaVision
+BenjaVision is a trading name of Benjability Pty Ltd
+
+Why Catalyst has a developer subscription
+----------------------------------------
+
+Catalyst is a really cool bunch of stuff that will save you a pile of time
+and effort to achieve some of the hardest things required to take your
+projects to the next level. It represents a substantial investment of time,
+care, and effort from our team. Developer subscriptions help us maintain it,
+improve it, and support the community building with it.
+
+Plus, a BenjaVision-Catalyst subscription is only $5 per month, billed
+annually at $60 per developer. It gives you access to the BenjaVision-Catalyst
+repository. The billing currency is identified at purchase.
+
+We're not trying to get rich from our community. We'll use Catalyst to
+build our own products for that. We're aiming for longevity: maintaining
+Catalyst for the long term, building our community, and enabling the people
+in it to do more.
+
+Our aim is to give developers broad freedom to build with Catalyst, with a
+small, predictable contribution from each developer helping sustain its
+future. The following terms define those permissions and conditions.
+
+1. Scope and definitions
+------------------------
+
+"Software" means the Catalyst software and associated documentation in
+this repository supplied under this License, including modified versions
+and substantial portions of that material. Material identified as separately
+licensed remains governed by its own license.
+
+"Licensor" means the copyright holder granting rights to the Software.
+"You" means the individual or organisation exercising those rights.
+
+"Development" means using the Software to develop, modify, integrate,
+test, compile, or build a product or a version of a product. It includes
+developing modifications to Catalyst itself, bug fixes, security updates,
+and rebuilding unchanged source, whether manually or through automation.
+
+"Completed Product" means a product build lawfully created under this
+License, including its incorporated Catalyst components. It may be an
+executable, library, application bundle, container, or packaged Smalltalk
+image. A development or test build may also be a Completed Product.
+
+2. Developer subscriptions and repository access
+------------------------------------------------
+
+Every individual developer undertaking Development must have an active
+BenjaVision-Catalyst subscription assigned to them while undertaking that
+Development. An employer or another organisation may purchase the
+subscription on the developer's behalf. A subscription assigned to one
+developer does not cover other developers.
+
+An active subscription is a paid subscription within its current annual
+term. Paying for one developer does not authorise sharing that developer's
+subscription or repository credentials with others.
+
+A subscription provides its assigned developer with access to the
+BenjaVision-Catalyst repository for the subscription term. Repository
+access ends when the subscription expires. Possession of previously
+downloaded source, a fork, or a copy received from someone else does not
+remove the subscription requirement for Development.
+
+Automated build systems may perform Development on behalf of subscribed
+developers without a separate subscription for each machine or automated
+agent. Every individual developer using the Software in that Development
+still needs their own active subscription; a single subscribed build
+operator does not cover an otherwise unsubscribed development team.
+
+3. Development permissions
+--------------------------
+
+Subject to this License and the developer subscription requirement,
+permission is granted worldwide and non-exclusively to use, copy, modify,
+merge, and build with the Software to create commercial or non-commercial
+products, including proprietary products and modified versions of Catalyst.
+There is no limit under this License on the number of products or builds a
+subscribed developer may create during their active subscription.
+
+You retain ownership of your original work. This License does not require
+you to publish your product's source code or contribute modifications back
+to Catalyst. You may license your own work under terms of your choice,
+provided those terms do not remove the conditions applying to the Software.
+
+4. Perpetual rights for completed products
+-----------------------------------------
+
+You and recipients of Completed Products may use, execute, copy, install,
+back up, restore, host, deploy, sell, and distribute those Completed Products
+indefinitely, without a developer subscription or additional Catalyst
+runtime royalties. You may grant recipients those same rights. These
+permissions apply to the incorporated Software as needed for those acts.
+There is no limit under this License on users, installations, servers, or
+copies of a Completed Product.
+
+Expiry or non-renewal of developer subscriptions does not terminate these
+permissions for builds lawfully completed before expiry. Historical
+contributors do not need to remain subscribed solely because their work
+remains in a Completed Product. Customers and operators do not need a
+subscription solely to use, host, or distribute a Completed Product.
+
+Copying or deploying an existing build is not Development. Ordinary runtime
+execution, including JIT compilation or runtime compilation needed to
+execute that existing product, is also permitted without a subscription.
+These runtime permissions do not authorise using a Completed Product as a
+development tool to undertake Development without the required subscriptions.
+
+Further Development, including a new build of unchanged source or a modified
+Smalltalk image, requires active subscriptions for the developers undertaking
+it. Renewing subscriptions restores Development permissions for the assigned
+developers for the renewed term.
+
+5. Source distribution and retained copies
+------------------------------------------
+
+You may copy, publish, and distribute the Software in source form, including
+your modifications, provided you include this License and preserve its
+conditions. Source distribution does not grant access to the
+BenjaVision-Catalyst repository or exempt recipients from developer
+subscriptions when they undertake Development.
+
+You may retain source copies and backups after subscription expiry. Retaining
+a copy does not authorise further Development without an active subscription.
+Neither distribution nor sublicensing may grant broader rights to the
+Software than this License grants. In particular, recipients cannot receive
+subscription-free Development rights through a distributor or a modified
+version of Catalyst.
+
+6. Notices, other licenses, and existing grants
+-----------------------------------------------
+
+Include the applicable copyright notices and this License in copies or
+substantial portions of the Software, including source distributions and
+Completed Products. For a Completed Product, these notices may be included
+in accompanying documentation or its third-party notices.
+
+Third-party material remains governed by its own license. This License does
+not remove third-party attribution, source disclosure, or other obligations,
+and grants rights only to material the Licensor is entitled to license.
+
+This License does not revoke or restrict rights already granted under MIT,
+MPL, or another license for previously licensed material. A later release
+under this License does not retrospectively change the terms of those grants.
+No trademark rights are granted by this License.
+
+7. Warranty disclaimer and limitation of liability
+--------------------------------------------------
+
+TO THE EXTENT PERMITTED BY APPLICABLE LAW, THE SOFTWARE IS PROVIDED "AS IS",
+WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE,
+AND NONINFRINGEMENT. TO THE EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT
+SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES,
+OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE,
+ARISING FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+OTHER DEALINGS IN THE SOFTWARE.
+
+Nothing in this License excludes, restricts, or modifies any rights,
+guarantees, remedies, or liabilities that cannot lawfully be excluded,
+restricted, or modified, including applicable Australian Consumer Law rights.
