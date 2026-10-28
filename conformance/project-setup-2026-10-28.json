@@ -1,9 +1,9 @@
 {
   "date": "2026-10-28",
-  "scope": "Users API with temporary AllUsers class-variable storage, portable model and Runtime integration",
+  "scope": "Users API with lazy admin and unknownUser defaults in temporary AllUsers storage",
   "gt": {
-    "examplesPassed": 7,
-    "sunitPassed": 7,
+    "examplesPassed": 8,
+    "sunitPassed": 8,
     "failures": 0,
     "errors": 0,
     "sourceSnapshotsMatch": true
@@ -13,26 +13,9 @@
       "BVC-Users-Runtime",
       "BVC-Users-Core"
     ],
-    "sourceDefinitions": [
-      [
-        "BaselineOfCatalystUsers",
-        4
-      ],
-      [
-        "BVC-Users-Core",
-        4
-      ],
-      [
-        "BVC-Users-Runtime",
-        8
-      ],
-      [
-        "BVC-Users-Tests",
-        18
-      ]
-    ],
     "platform": "CRGemStonePlatform",
     "contracts": [
+      "testDefaultUsers",
       "testNamedServiceExecutesUsersWork",
       "testProductionAndTestLoadGroupsAreSeparate",
       "testStoppedServiceCannotExecuteWork",
@@ -42,7 +25,35 @@
       "testUsersCapabilityIsNotServiceControlAuthority"
     ],
     "stone": "bvc_foundation_portable",
-    "passed": 7,
+    "passed": 8,
+    "defaultUsers": [
+      [
+        "admin",
+        true
+      ],
+      [
+        "unknownUser",
+        false
+      ]
+    ],
+    "sourceDefinitions": [
+      [
+        "BaselineOfCatalystUsers",
+        4
+      ],
+      [
+        "BVC-Users-Core",
+        11
+      ],
+      [
+        "BVC-Users-Runtime",
+        8
+      ],
+      [
+        "BVC-Users-Tests",
+        19
+      ]
+    ],
     "rowanMetadataFiles": 9,
     "rowanInstalled": false,
     "directRowanLoadQualified": false,

@@ -5,6 +5,26 @@ Class {
 	#package : 'BVC-Users-Tests'
 }
 
+{ #category : 'tests - api' }
+CUUsersExamples >> testDefaultUsers [
+ <gtExample>
+ <return: #OrderedCollection>
+ | users admin unknown |
+ users := CUUsers newAllUsers.
+ self assert: users size equals: 2.
+ admin := users first. unknown := users last.
+ self assert: admin name equals: 'admin'.
+ self assert: admin isSuperUser.
+ self assert: unknown name equals: 'unknownUser'.
+ self deny: unknown isSuperUser.
+ self deny: admin == unknown.
+ self assert: CUUsers admin == CUUsers admin.
+ self assert: CUUsers unknownUser == CUUsers unknownUser.
+ self assert: CUUsers admin isSuperUser.
+ self deny: CUUsers unknownUser isSuperUser.
+ ^ users
+]
+
 { #category : 'tests' }
 CUUsersExamples >> testNamedServiceExecutesUsersWork [
 <gtExample>

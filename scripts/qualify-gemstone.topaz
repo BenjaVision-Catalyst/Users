@@ -52,6 +52,7 @@ report := Dictionary new
  at: 'platform' put: CRPlatform current class name asString;
  at: 'contracts' put: selectors;
  at: 'passed' put: selectors size;
+ at: 'defaultUsers' put: {{CUUsers admin name. CUUsers admin isSuperUser}. {CUUsers unknownUser name. CUUsers unknownUser isSuperUser}};
  at: 'sourceDefinitions' put: proofs asArray;
  at: 'baselineDefaultPackages' put: ((version packagesForSpecNamed: 'default') collect: [:spec | spec name]) asArray;
  at: 'rowanMetadataFiles' put: metadata size;

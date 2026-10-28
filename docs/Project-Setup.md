@@ -34,7 +34,7 @@ capabilities. Unrelated WorkUnits cannot acquire Users authority. The current
 capability has no account operations yet; the project setup is not registration
 or authentication. The old DevKit `BVCUsers` plugin is not its superclass.
 
-`CUUser` starts as an Object subclass with no fields. Domain records, Magritte
+`CUUser` has a name and an `isSuperUser` flag, which defaults to false. Domain records, Magritte
 descriptions, persistence and real domain operations will be added under these ownership rules. No empty GT/GemStone adapter packages
 are introduced before there is actual platform-specific behavior to put in them.
 Production currently has no Connect, Groups, UI, Swift, Unreal or test dependency.
@@ -42,9 +42,12 @@ Production currently has no Connect, Groups, UI, Swift, Unreal or test dependenc
 ## Temporary Users API
 
 `CUUsers` is the class-side entry point for user data. `CUUsers allUsers` lazily
-creates an `OrderedCollection` held by the `AllUsers` class variable.
+creates an `OrderedCollection` held by the `AllUsers` class variable, seeded
+with `admin` (the super user) and `unknownUser` (not a super user).
 `CUUsers addUser: aUser` stores and returns the user. Repeated access returns the
-same collection; package loading does not reset it.
+same collection; subsequent access and package loading do not reset it or add
+duplicate defaults. `CUUsers admin` and `CUUsers unknownUser` return the shared
+default user objects.
 
 ```smalltalk
 CUUsers addUser: CUUser new.
