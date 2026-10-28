@@ -7,8 +7,8 @@ Class {
 	#instVars : [
 		'executed'
 	],
-	#category : 'Catalyst-Users-Tests',
-	#package : 'Catalyst-Users-Tests'
+	#category : 'BVC-Users-Tests',
+	#package : 'BVC-Users-Tests'
 }
 
 { #category : 'contracts' }

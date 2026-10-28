@@ -20,8 +20,8 @@ the GT/GemStone-first development order.
 | --- | --- |
 | `BaselineOfCatalystUsers` | Metacello dependency and platform selections. |
 | `BVC-Users-Core` | Portable Users model, starting with `CUUser`. |
-| `Catalyst-Users-Runtime` | `CUUsersService`, its narrow `CUUsersCapability`, and the abstract `CUUsersWorkUnit` base. |
-| `Catalyst-Users-Tests` | Portable executable examples and test-only capability-binding probes. |
+| `BVC-Users-Runtime` | `CUUsersService`, its narrow `CUUsersCapability`, and the abstract `CUUsersWorkUnit` base. |
+| `BVC-Users-Tests` | Portable executable examples and test-only capability-binding probes. |
 
 Production defaults load Core and Runtime. The `core` group loads only the model. Tests are opt-in. Runtime's
 `runtime-core` group selects its Pharo or GemStone backend. The Users baseline

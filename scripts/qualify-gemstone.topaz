@@ -9,7 +9,7 @@ version asInteger.
  (Smalltalk includesKey: name) ifFalse: [self error: 'Missing installed prerequisite: ', name asString]].
 GsDeployer deploy: [| repository |
  repository := TonelRepository new directory: (MetacelloPlatform current fileHandleOn: source).
- #('BaselineOfCatalystUsers' 'BVC-Users-Core' 'Catalyst-Users-Runtime' 'Catalyst-Users-Tests') do: [:name |
+ #('BaselineOfCatalystUsers' 'BVC-Users-Core' 'BVC-Users-Runtime' 'BVC-Users-Tests') do: [:name |
   Gofer new repository: repository; version: name, '-bvc.', version; load]].
 true
 %
@@ -22,7 +22,7 @@ selectors := (CUUsersExamples selectors select: [:selector | selector asString b
 selectors do: [:selector | CUUsersExamples new perform: selector].
 source := System gemEnvironmentVariable: 'BVC_USERS_SOURCE'.
 directory := MetacelloPlatform current fileHandleOn: source. proofs := OrderedCollection new.
-#('BaselineOfCatalystUsers' 'BVC-Users-Core' 'Catalyst-Users-Runtime' 'Catalyst-Users-Tests') do: [:name | | live expected actual |
+#('BaselineOfCatalystUsers' 'BVC-Users-Core' 'BVC-Users-Runtime' 'BVC-Users-Tests') do: [:name | | live expected actual |
  live := (MCPackage named: name) snapshot.
  expected := (TonelMCReader on: directory fileName: name) snapshot definitions reject: [:definition | definition isOrganizationDefinition].
  actual := live definitions reject: [:definition | definition isOrganizationDefinition].
@@ -37,8 +37,8 @@ metadata := Dictionary new.
 #('rowan/project.ston' 'rowan/components/Core.ston' 'rowan/components/Runtime.ston' 'rowan/components/Tests.ston' 'rowan/projects/CatalystRuntime.ston' 'rowan/projects/CatalystRuntimeTests.ston' 'rowan/specs/CatalystUsersCore.ston' 'rowan/specs/CatalystUsers.ston' 'rowan/specs/CatalystUsersTests.ston') do: [:path |
  metadata at: path put: (parse value: path)].
 ((metadata at: 'rowan/project.ston') at: #packagesPath) = 'src' ifFalse: [self error: 'Rowan source path differs'].
-((metadata at: 'rowan/components/Runtime.ston') at: #packageNames) = #('Catalyst-Users-Runtime') ifFalse: [self error: 'Rowan production package selection differs'].
-((metadata at: 'rowan/components/Tests.ston') at: #packageNames) = #('Catalyst-Users-Runtime' 'Catalyst-Users-Tests') ifFalse: [self error: 'Rowan test package selection differs'].
+((metadata at: 'rowan/components/Runtime.ston') at: #packageNames) = #('BVC-Users-Runtime') ifFalse: [self error: 'Rowan production package selection differs'].
+((metadata at: 'rowan/components/Tests.ston') at: #packageNames) = #('BVC-Users-Runtime' 'BVC-Users-Tests') ifFalse: [self error: 'Rowan test package selection differs'].
 ((metadata at: 'rowan/components/Core.ston') at: #packageNames) = #('BVC-Users-Core') ifFalse: [self error: 'Rowan Core package selection differs'].
 CUUser new class = CUUser ifFalse: [self error: 'CUUser is unavailable'].
 #('Runtime' 'Tests') do: [:component | | definition |

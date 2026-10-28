@@ -8,8 +8,8 @@ Class {
 		'executed',
 		'serviceIdentifier'
 	],
-	#category : 'Catalyst-Users-Tests',
-	#package : 'Catalyst-Users-Tests'
+	#category : 'BVC-Users-Tests',
+	#package : 'BVC-Users-Tests'
 }
 
 { #category : 'execution' }

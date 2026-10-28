@@ -4,8 +4,8 @@ Users Runtime service foundation. Runtime owns lifecycle, service placement and 
 Class {
 	#name : 'CUUsersService',
 	#superclass : 'CRWorkerService',
-	#category : 'Catalyst-Users-Runtime',
-	#package : 'Catalyst-Users-Runtime'
+	#category : 'BVC-Users-Runtime',
+	#package : 'BVC-Users-Runtime'
 }
 
 { #category : 'lifecycle' }

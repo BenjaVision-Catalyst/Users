@@ -4,8 +4,8 @@ Abstract base for inert Users application work. Concrete operations declare boun
 Class {
 	#name : 'CUUsersWorkUnit',
 	#superclass : 'CRWorkUnit',
-	#category : 'Catalyst-Users-Runtime',
-	#package : 'Catalyst-Users-Runtime'
+	#category : 'BVC-Users-Runtime',
+	#package : 'BVC-Users-Runtime'
 }
 
 { #category : 'contracts' }

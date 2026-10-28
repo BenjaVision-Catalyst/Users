@@ -1,8 +1,8 @@
 Class {
 	#name : 'CUUsersExamples',
 	#superclass : 'TestCase',
-	#category : 'Catalyst-Users-Tests',
-	#package : 'Catalyst-Users-Tests'
+	#category : 'BVC-Users-Tests',
+	#package : 'BVC-Users-Tests'
 }
 
 { #category : 'tests' }
@@ -24,13 +24,17 @@ CUUsersExamples >> testNamedServiceExecutesUsersWork [
 CUUsersExamples >> testProductionAndTestLoadGroupsAreSeparate [
  <gtExample>
  <return: #MetacelloVersion>
- | version |
+ | version coreClasses runtimeClasses |
  version := BaselineOfCatalystUsers new project version.
- self assert: ((version packagesForSpecNamed: 'default') collect: #name) asArray sorted equals: #('BVC-Users-Core' 'Catalyst-Users-Runtime').
- self assert: ((version packagesForSpecNamed: 'runtime') collect: #name) asArray sorted equals: #('BVC-Users-Core' 'Catalyst-Users-Runtime').
- self assert: ((version packagesForSpecNamed: 'tests') collect: #name) asArray sorted equals: #('BVC-Users-Core' 'Catalyst-Users-Runtime' 'Catalyst-Users-Tests').
- self assert: ((version packagesForSpecNamed: 'core') collect: #name) asArray sorted equals: #('BVC-Users-Core').
- self assert: (version packageNamed: 'Catalyst-Users-Runtime') requires asArray equals: #('BVC-Users-Core' 'CatalystRuntime').
+ #('default' 'runtime') do: [:group |
+  self assert: ((version packagesForSpecNamed: group) collect: #name) asArray sorted equals: #('BVC-Users-Core' 'BVC-Users-Runtime')].
+ self assert: ((version packagesForSpecNamed: 'core') collect: #name) asArray equals: #('BVC-Users-Core').
+ self assert: ((version packagesForSpecNamed: 'tests') collect: #name) asArray sorted equals: #('BVC-Users-Core' 'BVC-Users-Runtime' 'BVC-Users-Tests').
+ self assert: (version packageNamed: 'BVC-Users-Runtime') requires asArray equals: #('BVC-Users-Core' 'CatalystRuntime').
+ coreClasses := (((MCPackage named: 'BVC-Users-Core') snapshot definitions select: [:definition | definition isClassDefinition]) collect: [:definition | definition className asString]) asArray sorted.
+ runtimeClasses := (((MCPackage named: 'BVC-Users-Runtime') snapshot definitions select: [:definition | definition isClassDefinition]) collect: [:definition | definition className asString]) asArray sorted.
+ self assert: coreClasses equals: #('CUUser').
+ self assert: runtimeClasses equals: #('CUUsersCapability' 'CUUsersService' 'CUUsersWorkUnit').
  ^ version
 ]
 

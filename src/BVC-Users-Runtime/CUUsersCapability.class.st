@@ -4,8 +4,8 @@ Narrow Users service capability. Only installed Users WorkUnit subclasses may re
 Class {
 	#name : 'CUUsersCapability',
 	#superclass : 'CRServiceBoundCapability',
-	#category : 'Catalyst-Users-Runtime',
-	#package : 'Catalyst-Users-Runtime'
+	#category : 'BVC-Users-Runtime',
+	#package : 'BVC-Users-Runtime'
 }
 
 { #category : 'authority' }

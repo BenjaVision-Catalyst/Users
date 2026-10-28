@@ -1,6 +1,6 @@
 {
   "date": "2026-10-28",
-  "scope": "Users Core model and Runtime service loaders; CUUser starts without fields",
+  "scope": "Users project loaders with BVC-Users-Core, BVC-Users-Runtime and BVC-Users-Tests",
   "gt": {
     "examplesPassed": 6,
     "sunitPassed": 6,
@@ -10,7 +10,7 @@
   },
   "gemstone": {
     "baselineDefaultPackages": [
-      "Catalyst-Users-Runtime",
+      "BVC-Users-Runtime",
       "BVC-Users-Core"
     ],
     "sourceDefinitions": [
@@ -23,11 +23,11 @@
         1
       ],
       [
-        "Catalyst-Users-Runtime",
+        "BVC-Users-Runtime",
         8
       ],
       [
-        "Catalyst-Users-Tests",
+        "BVC-Users-Tests",
         17
       ]
     ],
