@@ -48,11 +48,11 @@ CUUsersConnectNativeScenario >> runConfiguration: connectConfiguration cases: ca
    result at: 'nativeClass' put: future value class name asString].
   results add: result].
  self assert: CUUsers allUsers size equals: originalCount
- ] ensure: [runtime stop].
+ ] ensure: [runtime stop. runtime registry unregister: runtime].
  evidence := Dictionary new at: 'runtimeIdentifier' put: runtime identifier asString; at: 'configurationVersion' put: runtime effectiveConfiguration version;
   at: 'createdFromConfiguration' put: true; at: 'converged' put: convergence; at: 'workerIdentifiers' put: workerIds asArray;
   at: 'results' put: results asArray; at: 'clientStoreUnchanged' put: (CUUsers allUsers size = originalCount); at: 'runtimeStopped' put: (runtime status = CRStatus stopped);
-  at: 'service' put: service status; yourself.
+  at: 'runtimeUnregistered' put: ((runtime registry runtimes identityIncludes: runtime) not); at: 'service' put: service status; yourself.
  CRPlatform current writeConnectEvidence: evidence to: (directory / 'evidence.json') fullName.
  ^ evidence
 ]

@@ -38,24 +38,24 @@
     ]
   },
   "nativeQualification": {
-    "runtime": "users_connect_81a3ae83c49f",
-    "serverRuntimeIdentifier": "81m8qndouk3ntyeifcw515wf0",
+    "runtime": "users_connect_237aa023f9ff",
+    "serverRuntimeIdentifier": "dzgnhygws712xmqxdai2t4u96",
     "serverWorkerPids": [
-      7295,
-      7343
+      8866,
+      8914
     ],
     "serverServices": [
+      {
+        "host": "aControl",
+        "services": [
+          "runtimeOrchestrator"
+        ]
+      },
       {
         "host": "application",
         "services": [
           "connect",
           "users"
-        ]
-      },
-      {
-        "host": "aControl",
-        "services": [
-          "runtimeOrchestrator"
         ]
       }
     ],
@@ -63,32 +63,23 @@
       "results": [
         {
           "nativeClass": "CUUser",
-          "name": "users_connect_81a3ae83c49f_user:committed",
+          "name": "users_connect_237aa023f9ff_user:committed",
           "state": "completed"
         },
         {
-          "name": "users_connect_81a3ae83c49f_user:rollback",
+          "name": "users_connect_237aa023f9ff_user:rollback",
           "state": "unknown"
         },
         {
-          "name": "users_connect_81a3ae83c49f_user:super",
+          "name": "users_connect_237aa023f9ff_user:super",
           "state": "unknown"
         }
       ],
-      "configurationVersion": 1,
-      "runtimeIdentifier": "4ds8jiftqxnf8wja98tj6vfxr",
-      "clientStoreUnchanged": true,
-      "converged": true,
-      "workerIdentifiers": [
-        "w000001"
-      ],
-      "createdFromConfiguration": true,
-      "runtimeStopped": true,
       "service": {
         "statistics": {
-          "drives": 35,
+          "drives": 37,
           "admitted": 4,
-          "port": 54726,
+          "port": 51540,
           "copyBytes": 257,
           "published": 0,
           "pendingPeak": 1,
@@ -101,12 +92,22 @@
         },
         "stopping": false,
         "buffersReleased": true
-      }
+      },
+      "clientStoreUnchanged": true,
+      "runtimeIdentifier": "6meqbvi6jq9s6l66ie5juqj9g",
+      "workerIdentifiers": [
+        "w000001"
+      ],
+      "converged": true,
+      "runtimeStopped": true,
+      "runtimeUnregistered": true,
+      "configurationVersion": 1,
+      "createdFromConfiguration": true
     },
     "phases": {
       "configure": {
         "phase": "configure",
-        "runtime": "users_connect_81a3ae83c49f"
+        "runtime": "users_connect_237aa023f9ff"
       },
       "verify": {
         "outcomes": [
@@ -131,10 +132,10 @@
             "recorded"
           ]
         ],
-        "committedUser": "users_connect_81a3ae83c49f_user:committed",
+        "committedUser": "users_connect_237aa023f9ff_user:committed",
         "phase": "verify",
         "independentGemRead": true,
-        "runtime": "users_connect_81a3ae83c49f",
+        "runtime": "users_connect_237aa023f9ff",
         "onlySuccessfulUserPersisted": true,
         "failures": [
           [
@@ -149,14 +150,14 @@
       },
       "deny": {
         "configurationVersion": 1,
-        "runtime": "users_connect_81a3ae83c49f",
+        "runtime": "users_connect_237aa023f9ff",
         "phase": "deny",
         "invalidAuthorityRemovalRejected": true
       },
       "cleanup": {
         "originalUsersPreserved": true,
         "phase": "cleanup",
-        "runtime": "users_connect_81a3ae83c49f",
+        "runtime": "users_connect_237aa023f9ff",
         "createdUsersRemoved": 1,
         "fixtureRemoved": true
       }
@@ -167,10 +168,20 @@
       "originalRegistriesRestored": true,
       "preexistingCalls": 1,
       "state": "released",
-      "quiescenceElapsedMillis": 39,
+      "quiescenceElapsedMillis": 289,
       "refusedCalls": 0
     },
-    "passed": true
+    "passed": true,
+    "gtRegistryCleanup": {
+      "removedIdentifiers": [
+        "orqn58ygp7lfc5d7mrr6yg7b",
+        "1um2gbre23r0kv9wheax0hd6c",
+        "agwiokctd1vaea3ao11j563ss",
+        "4ds8jiftqxnf8wja98tj6vfxr"
+      ],
+      "removedStoppedQualificationRuntimes": 4,
+      "otherRegistrationsPreserved": true
+    }
   },
   "sourceVerification": {
     "nativeAdaptersPackageCountsAndDifferences": [

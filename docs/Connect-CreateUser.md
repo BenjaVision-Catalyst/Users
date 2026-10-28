@@ -82,7 +82,8 @@ failure case. The client observes native committed success and no success for th
 rollback or super-user rejection. A fresh Gem confirms that only the successful
 user persisted. It also verifies rejection of an invalid authority change while a
 local binding requires that authority. Successful cleanup removes only its test
-Runtime/user/root and positively releases GT native buffers. Failed runs retain
+Runtime/user/root, unregisters its stopped GT Runtime, and positively releases
+GT native buffers. Failed runs retain
 their evidence for inspection.
 
 Rowan equivalents are `CatalystUsersConnect.ston` and

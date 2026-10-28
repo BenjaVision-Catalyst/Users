@@ -115,7 +115,7 @@ Smalltalk globals at: {st(name)} asSymbol put: run. run snapshot''')
 run waitForMillis: 1000. self assert: run isFinished. Smalltalk globals removeKey: {st(name)} asSymbol. run snapshot''')
         assert not (directory / 'error.json').exists(), (directory / 'error.json').read_text() if (directory / 'error.json').exists() else ''
         evidence = wait_json(directory / 'evidence.json')
-        assert evidence['createdFromConfiguration'] and evidence['converged'] and evidence['runtimeStopped'], evidence
+        assert evidence['createdFromConfiguration'] and evidence['converged'] and evidence['runtimeStopped'] and evidence['runtimeUnregistered'], evidence
         assert evidence['clientStoreUnchanged'] and evidence['service']['buffersReleased'], evidence
         report[label] = evidence
         report[label + 'McpGate'] = gate
