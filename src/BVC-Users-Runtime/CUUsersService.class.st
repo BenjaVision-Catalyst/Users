@@ -11,6 +11,8 @@ Class {
 { #category : 'users api' }
 CUUsersService >> createUser: aUser [
  (self isCurrentResultEpoch: self resultEpoch) ifFalse: [CRCapabilityDeniedException signal: 'Users service is not active.'].
+ (self configuration notNil and: [self configuration isAuthoritative]) ifFalse: [
+  CRCapabilityDeniedException signal: 'Users service is not authoritative.'].
  ^ CUUsers createUser: aUser
 ]
 

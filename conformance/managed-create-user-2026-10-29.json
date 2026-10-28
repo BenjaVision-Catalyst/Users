@@ -1,0 +1,131 @@
+{
+  "date": "2026-10-29",
+  "operation": "createUser:",
+  "usersBase": "ace790a2c8bbb3a1344e5ae73c1b41fdd431f3a4",
+  "platform": "GemStone 3.7.5 arm64 macOS",
+  "gt": {
+    "examplesPassed": 17,
+    "failures": 0,
+    "errors": 0,
+    "packageDefinitionsAndDifferences": [
+      [
+        "BVC-Users-Core",
+        14,
+        0
+      ],
+      [
+        "BVC-Users-Runtime",
+        19,
+        0
+      ],
+      [
+        "BVC-Users-Tests",
+        31,
+        0
+      ]
+    ],
+    "sourceAuthority": "Live GT image; compiled and exported through MCP"
+  },
+  "native": {
+    "runtimeName": "users_runtime_c1cbacfc45df",
+    "runtimeCreatedFromConfiguration": true,
+    "host": "CRGemStoneWorkerHost",
+    "worker": "CRGemStoneWorker",
+    "submission": "CRWorkRouter and existing published #users service handle; producer-owned transaction",
+    "sourceClassMethodDefinitionsAndDifferences": [
+      [
+        "BVC-Users-Core",
+        13,
+        0
+      ],
+      [
+        "BVC-Users-Runtime",
+        18,
+        0
+      ]
+    ],
+    "phases": {
+      "configure": {
+        "phase": "configure",
+        "runtime": "users_runtime_c1cbacfc45df"
+      },
+      "execute": {
+        "phase": "execute",
+        "runtime": "users_runtime_c1cbacfc45df"
+      },
+      "verify": {
+        "rollbackAfterMutation": true,
+        "runtime": "users_runtime_c1cbacfc45df",
+        "phase": "verify",
+        "independentGemRead": true,
+        "committedCreation": true,
+        "unrelatedWorkDenied": true,
+        "superUserRejected": true,
+        "outcomes": [
+          [
+            "CUCreateUserWorkUnit",
+            true,
+            "committed",
+            "recorded"
+          ],
+          [
+            "CUUsersFailAfterCreateTestWorkUnit",
+            false,
+            "aborted",
+            "recorded"
+          ],
+          [
+            "CUCreateUserWorkUnit",
+            false,
+            "aborted",
+            "recorded"
+          ],
+          [
+            "CUUsersDeniedTestWorkUnit",
+            false,
+            "inMemory",
+            "recorded"
+          ]
+        ]
+      },
+      "deny": {
+        "configurationVersion": 2,
+        "phase": "deny",
+        "runtime": "users_runtime_c1cbacfc45df",
+        "liveAuthorityChangeEnforced": true
+      },
+      "obsolete": {
+        "runtime": "users_runtime_c1cbacfc45df",
+        "phase": "obsolete",
+        "obsoleteVersionSkipped": true
+      },
+      "cleanup": {
+        "fixtureRootRemoved": true,
+        "phase": "cleanup",
+        "runtime": "users_runtime_c1cbacfc45df",
+        "createdUserRemoved": true,
+        "originalUsersPreserved": true
+      }
+    },
+    "workerGemsPreserved": true,
+    "startingWorkerPids": [
+      309,
+      359
+    ],
+    "runtimeStoppedAndRemoved": true,
+    "defaultAdminAndUnknownUserPreserved": true
+  },
+  "runner": "scripts/qualify-managed-create-user.py",
+  "phaseScript": "scripts/qualify-create-user.topaz",
+  "scope": {
+    "storage": "Temporary AllUsers class variable",
+    "requiresTransaction": true,
+    "allowsConflictReplay": false,
+    "serviceAuthority": "Existing live service configuration, enforced before mutation",
+    "connectTransactionalCompletion": false,
+    "callerAuthentication": false,
+    "tenantModel": false,
+    "privateGtManagementConnection": false
+  },
+  "passed": true
+}

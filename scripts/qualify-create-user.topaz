@@ -1,76 +1,95 @@
 expectvalue true
 run
-| phase key path root queue backend worker samples report file created rolledBack elevated |
-phase := System gemEnvironmentVariable: 'BVC_USERS_TRANSACTION_PHASE'.
-key := System gemEnvironmentVariable: 'BVC_USERS_TRANSACTION_ROOT'.
-path := System gemEnvironmentVariable: 'BVC_USERS_TRANSACTION_REPORT'.
-(phase isNil or: [key isNil or: [path isNil]]) ifTrue: [self error: 'Set BVC_USERS_TRANSACTION_PHASE, BVC_USERS_TRANSACTION_ROOT and BVC_USERS_TRANSACTION_REPORT'].
-(#('execute' 'verify') includes: phase) ifFalse: [self error: 'Phase must be execute or verify'].
-key := key asSymbol.
+| phase key path runtimeName configurationPath runtime root report check wait router submit usersHost outcomes created rolledBack elevated cfg orchestrator controlHost usersConfiguration hostConfiguration |
 System abortTransaction. System transactionMode: #manualBegin.
-phase = 'execute' ifTrue: [
- (UserGlobals includesKey: key) ifTrue: [self error: 'Qualification root already exists; inspect it before any retry'].
- backend := CRGemStoneTransactionBackend completionRecorder: [:execution | | sample failure |
-  worker acknowledgeExecution: execution.
-  failure := execution failureEvidence.
-  sample := Dictionary new
-   at: 'workClass' put: execution workUnit class name asString;
-   at: 'successful' put: execution wasSuccessful;
-   at: 'transactionOutcome' put: execution transactionOutcome asString;
-   at: 'failureClass' put: (failure ifNil: [nil] ifNotNil: [failure errorClassName asString]); yourself.
-  (root at: #outcomes) add: sample].
- backend duringOwnedTransaction: [
-  root := Dictionary new at: #queue put: CRGemStoneWorkQueue new;
-   at: #outcomes put: OrderedCollection new; at: #originalUsers put: CUUsers allUsers copy; yourself.
-  created := CUUser new name: 'Native createUser committed'; yourself.
-  rolledBack := CUUser new name: 'Native createUser rolled back'; yourself.
-  elevated := CUUser new name: 'Native createUser rejected super user'; isSuperUser: true; yourself.
-  root at: #createdUser put: created; at: #rolledBackUser put: rolledBack; at: #elevatedUser put: elevated.
-  UserGlobals at: key put: root.
-  queue := root at: #queue.
-  worker := CRGemStoneWorker new.
-  worker configureIdentifier: #usersCreateQualification hostIdentifier: #usersCreateQualification queue: queue using: backend.
-  worker workerHandle lifecycleStatus: CRStatus running.
-  worker services installServiceClass: CUUsersService serviceIdentifier: 'users' configuration: CRServiceConfiguration default.
-  worker services startAll].
- backend duringOwnedTransaction: [
-  queue enqueue: ((CUCreateUserWorkUnit user: created) asEnvelope serviceIdentifier: 'users'; yourself).
-  queue enqueue: ((CUUsersFailAfterCreateTestWorkUnit user: rolledBack) asEnvelope serviceIdentifier: 'users'; yourself).
-  queue enqueue: ((CUCreateUserWorkUnit user: elevated) asEnvelope serviceIdentifier: 'users'; yourself).
-  queue enqueue: (CUUsersDeniedTestWorkUnit new asEnvelope serviceIdentifier: 'users'; yourself)].
- 4 timesRepeat: [worker executeNextQueuedWork ifFalse: [self error: 'Expected queued Users delivery']].
- worker stopAndUninstallServices.
- System abortTransaction.
- root := UserGlobals at: key.
- (CUUsers allUsers identityIncludes: (root at: #createdUser)) ifFalse: [self error: 'Creation was not committed'].
- (CUUsers allUsers identityIncludes: (root at: #rolledBackUser)) ifTrue: [self error: 'Failed body was not rolled back'].
- report := Dictionary new at: 'phase' put: 'awaitingIndependentVerification'; at: 'root' put: key asString; yourself].
-phase = 'verify' ifTrue: [
- root := UserGlobals at: key ifAbsent: [self error: 'No qualification root to verify'].
- created := root at: #createdUser. rolledBack := root at: #rolledBackUser. elevated := root at: #elevatedUser.
- samples := root at: #outcomes.
- (samples size = 4 and: [(samples at: 1) at: 'successful']) ifFalse: [self error: 'Successful creation evidence differs'].
- ((samples at: 1) at: 'transactionOutcome') = 'committed' ifFalse: [self error: 'Success was not committed'].
- ((samples at: 2) at: 'successful') ifTrue: [self error: 'Rollback probe unexpectedly succeeded'].
- ((samples at: 2) at: 'transactionOutcome') = 'aborted' ifFalse: [self error: 'Rollback outcome differs'].
- ((samples at: 3) at: 'failureClass') = 'CUUserCreationError' ifFalse: [self error: 'Business rejection differs'].
- ((samples at: 4) at: 'failureClass') = 'CRCapabilityDeniedException' ifFalse: [self error: 'Capability denial differs'].
- (root at: #queue) isEmpty ifFalse: [self error: 'Queue ownership remains'].
- (CUUsers allUsers identityIncludes: created) ifFalse: [self error: 'Created user is absent in the independent Gem'].
- ((CUUsers allUsers identityIncludes: rolledBack) or: [CUUsers allUsers identityIncludes: elevated]) ifTrue: [self error: 'Rejected user persisted'].
- CUUsers allUsers size = ((root at: #originalUsers) size + 1) ifFalse: [self error: 'Unexpected store change'].
- (root at: #originalUsers) do: [:user | (CUUsers allUsers identityIncludes: user) ifFalse: [self error: 'Existing user changed']].
- report := Dictionary new at: 'phase' put: 'verified'; at: 'independentGemRead' put: true;
-  at: 'committedCreation' put: true; at: 'rollbackAfterMutation' put: true;
-  at: 'superUserCreationRejected' put: true; at: 'unrelatedWorkDenied' put: true;
-  at: 'queueReleased' put: true; at: 'outcomes' put: samples asArray; yourself.
- backend := CRGemStoneTransactionBackend completionRecorder: [:ignored | self error: 'No application work during cleanup'].
- backend duringOwnedTransaction: [CUUsers allUsers remove: created. UserGlobals removeKey: key].
- System abortTransaction.
- (UserGlobals includesKey: key) ifTrue: [self error: 'Qualification root remains'].
- (CUUsers allUsers identityIncludes: created) ifTrue: [self error: 'Qualification user remains'].
- report at: 'cleanupCommitted' put: true].
-file := GsFile openWriteOnServer: path.
-[file nextPutAll: (STON toJsonString: report)] ensure: [file close].
+phase := System gemEnvironmentVariable: 'BVC_USERS_TRANSACTION_PHASE'.
+key := (System gemEnvironmentVariable: 'BVC_USERS_TRANSACTION_ROOT') asSymbol.
+path := System gemEnvironmentVariable: 'BVC_USERS_TRANSACTION_REPORT'.
+runtimeName := System gemEnvironmentVariable: 'BVC_USERS_RUNTIME_NAME'.
+configurationPath := System gemEnvironmentVariable: 'BVC_USERS_TRANSACTION_CONFIGURATION'.
+(#('configure' 'execute' 'verify' 'deny' 'obsolete' 'cleanup') includes: phase) ifFalse: [self error: 'Unknown Users qualification phase'].
+check := [:condition :message | condition ifFalse: [self error: message]].
+wait := [:predicate | | deadline |
+ deadline := CRPlatform current currentMillis + 15000.
+ [System abortTransaction. predicate value or: [CRPlatform current currentMillis >= deadline]] whileFalse: [(Delay forMilliseconds: 25) wait].
+ check value: predicate value value: 'Timed out; inspect retained Runtime, queue and evidence before retrying'].
+report := Dictionary new at: 'phase' put: phase; at: 'runtime' put: runtimeName; yourself.
+phase = 'configure' ifTrue: [
+ cfg := CRRuntimeConfiguration new label: 'Configured authoritative Users qualification'; yourself.
+ orchestrator := CROrchestrationConfiguration default heartbeatIntervalMillis: 1000; reconcileIntervalMillis: 250; yourself.
+ usersConfiguration := CRServiceConfiguration new identifier: #users; label: 'Authoritative Users'; serviceClass: CUUsersService; authoritative: true; yourself.
+ cfg services: {orchestrator. usersConfiguration}.
+ controlHost := CRHostConfiguration new identifier: #aControl; label: 'Control'; address: 'localhost'; maxProcesses: 2; services: {CRRuntime orchestratorIdentifier}; yourself.
+ hostConfiguration := CRHostConfiguration new identifier: #usersHost; label: 'Users'; address: 'localhost'; maxProcesses: 2; services: {#users}; yourself.
+ cfg topology: (CRTopologyConfiguration new hosts: {controlHost. hostConfiguration}; placementStrategyConfiguration: CRRoundRobinPlacementStrategyConfiguration new; yourself).
+ cfg deployment serviceDeployments: {CRServiceDeploymentConfiguration new serviceIdentifier: CRRuntime orchestratorIdentifier; label: 'Orchestrator'; initialCount: 1; yourself. CRServiceDeploymentConfiguration new serviceIdentifier: #users; label: 'Users'; initialCount: 1; yourself}.
+ cfg failureEvidenceConfiguration captureDebugArtifacts: false.
+ check value: cfg validate isValid value: 'Invalid qualification configuration'.
+ (GsFile openWriteOnServer: configurationPath) nextPutAll: (CRRuntimeConfigurationCodec toString: cfg); close].
+phase = 'configure' ifFalse: [
+ runtime := CRRuntimeRegistry default runtimeNamed: runtimeName.
+ phase = 'cleanup' ifFalse: [
+  check value: runtime notNil value: 'Runtime must be created from configuration before submitting work'.
+  router := CRWorkRouter deploymentTopology: runtime activation deploymentTopology.
+  usersHost := runtime nativeHosts values detect: [:host | | publication |
+   publication := runtime publications at: host workerIdentifier ifAbsent: [nil].
+   publication notNil and: [(publication serviceHandleForIdentifier: #users) notNil]].
+  submit := [:work :version | | envelope |
+   envelope := work asEnvelope serviceIdentifier: #users; yourself.
+   envelope context add: (CRDeploymentVersionContext new version: version; yourself).
+   CRApplicationWorkSubmissionPolicy new validateWorkUnit: work.
+   router enqueue: envelope]].
+ phase = 'execute' ifTrue: [
+  check value: (UserGlobals includesKey: key) not value: 'Fixture exists; inspect before retrying'.
+  check value: (runtime nativeHosts values allSatisfy: [:host | host class == CRGemStoneWorkerHost]) value: 'Runtime must use the default transactional worker hosts'.
+  CRGemStoneRuntime duringTransaction: [
+   created := CUUser new name: 'Runtime committed user'; yourself.
+   rolledBack := CUUser new name: 'Runtime rolled-back user'; yourself.
+   elevated := CUUser new name: 'Runtime rejected super user'; isSuperUser: true; yourself.
+   root := Dictionary new at: #runtime put: runtime; at: #originalUsers put: CUUsers allUsers copy;
+    at: #createdUser put: created; at: #rolledBackUser put: rolledBack; at: #elevatedUser put: elevated; yourself.
+   UserGlobals at: key put: root.
+   submit value: (CUCreateUserWorkUnit user: created) value: runtime configuration version.
+   submit value: ((Smalltalk at: #CUUsersFailAfterCreateTestWorkUnit) user: rolledBack) value: runtime configuration version.
+   submit value: (CUCreateUserWorkUnit user: elevated) value: runtime configuration version.
+   submit value: (Smalltalk at: #CUUsersDeniedTestWorkUnit) new value: runtime configuration version]].
+ phase = 'verify' ifTrue: [
+  root := UserGlobals at: key.
+  wait value: [outcomes := usersHost executionMetrics samples select: [:sample | #('CUCreateUserWorkUnit' 'CUUsersFailAfterCreateTestWorkUnit' 'CUUsersDeniedTestWorkUnit') includes: sample workUnitClass name asString]. outcomes size = 4].
+  check value: (CUUsers allUsers identityIncludes: (root at: #createdUser)) value: 'Creation did not commit'.
+  check value: ((CUUsers allUsers identityIncludes: (root at: #rolledBackUser)) not) value: 'Failed body mutation survived rollback'.
+  check value: ((CUUsers allUsers identityIncludes: (root at: #elevatedUser)) not) value: 'Elevated user was created'.
+  check value: (CUUsers allUsers size = ((root at: #originalUsers) size + 1)) value: 'Unexpected Users store changes'.
+  check value: (outcomes first isSuccessful and: [outcomes first transactionOutcome = #committed]) value: 'Committed creation evidence differs'.
+  check value: (outcomes second transactionOutcome = #aborted) value: 'Failed body lacks aborted evidence'.
+  check value: (usersHost failures asArray anySatisfy: [:failure | failure errorClassName asString = 'CUUserCreationError']) value: 'Missing business rejection evidence'.
+  check value: (usersHost failures asArray anySatisfy: [:failure | failure errorClassName asString = 'CRCapabilityDeniedException']) value: 'Missing capability denial evidence'.
+  check value: usersHost controlQueue isEmpty value: 'Queue still owns a delivery'.
+  report at: 'independentGemRead' put: true; at: 'committedCreation' put: true; at: 'rollbackAfterMutation' put: true; at: 'superUserRejected' put: true; at: 'unrelatedWorkDenied' put: true;
+   at: 'outcomes' put: (outcomes collect: [:sample | {sample workUnitClass name asString. sample isSuccessful. sample transactionOutcome asString. sample completionRecordingOutcome asString}]) asArray].
+ phase = 'deny' ifTrue: [
+  root := UserGlobals at: key. cfg := runtime configuration. (cfg serviceConfigurationNamed: #users) authoritative: false.
+  runtime configure: cfg.
+  wait value: [| publication | publication := runtime publications at: usersHost workerIdentifier. (publication serviceHandleForIdentifier: #users) appliedConfigurationVersion = runtime configuration version].
+  CRGemStoneRuntime duringTransaction: [created := CUUser new name: 'Rejected non-authoritative user'; yourself. root at: #refusedUser put: created. submit value: (CUCreateUserWorkUnit user: created) value: runtime configuration version].
+  wait value: [usersHost failures asArray anySatisfy: [:failure | failure workUnitClassName asString = 'CUCreateUserWorkUnit' and: [failure errorClassName asString = 'CRCapabilityDeniedException']]].
+  check value: ((CUUsers allUsers identityIncludes: created) not) value: 'Non-authoritative service created a user'.
+  report at: 'liveAuthorityChangeEnforced' put: true; at: 'configurationVersion' put: runtime configuration version].
+ phase = 'obsolete' ifTrue: [
+  root := UserGlobals at: key.
+  CRGemStoneRuntime duringTransaction: [created := CUUser new name: 'Rejected obsolete configuration user'; yourself. root at: #obsoleteUser put: created. submit value: (CUCreateUserWorkUnit user: created) value: runtime configuration version - 1].
+  wait value: [usersHost executionMetrics samples anySatisfy: [:sample | sample workUnitClass == CUCreateUserWorkUnit and: [sample transactionOutcome = #skipped]]].
+  check value: ((CUUsers allUsers identityIncludes: created) not) value: 'Obsolete work created a user'.
+  check value: usersHost controlQueue isEmpty value: 'Obsolete delivery was not acknowledged'.
+  report at: 'obsoleteVersionSkipped' put: true].
+ phase = 'cleanup' ifTrue: [
+  root := UserGlobals at: key. runtime := root at: #runtime.
+  check value: (runtime status = CRStatus stopped) value: 'Stop the qualification Runtime before cleanup'.
+  CRGemStoneRuntime duringTransaction: [
+   CUUsers allUsers remove: (root at: #createdUser).
+   (root at: #originalUsers) do: [:user | check value: (CUUsers allUsers identityIncludes: user) value: 'Original user changed'].
+   UserGlobals removeKey: key].
+  report at: 'createdUserRemoved' put: true; at: 'originalUsersPreserved' put: true; at: 'fixtureRootRemoved' put: true]].
+(GsFile openWriteOnServer: path) nextPutAll: (STON toJsonString: report); close.
 true
 %

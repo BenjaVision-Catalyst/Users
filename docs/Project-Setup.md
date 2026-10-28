@@ -71,34 +71,53 @@ stage; this increment introduces no username uniqueness or identity policy.
 
 `CUUsersService>>createUser:` delegates to that data API. Runtime-facing callers
 use `CUCreateUserWorkUnit user: aUser`, addressed to the configured Users service.
-Its inherited contract requires `CUUsersCapability`; the capability is fenced to
+The configured service must be authoritative; the service checks the live adopted
+configuration before mutation. Its inherited contract requires `CUUsersCapability`; the capability is fenced to
 the service activation and cannot be reused after stop/restart. No transport
 capability or reply construction occurs in the domain handler.
 
 The WorkUnit declares `requiresTransaction = true` and `allowsConflictReplay =
-false`. Pharo performs the body in memory. GemStone's local, nontransactional
-worker refuses it; the persistent worker owns dequeue, body, commit and outcome
-evidence. The returned object is an ordinary handler result. Runtime's current
-automatic result completion rejects transactional WorkUnits, so committed
-asynchronous Connect replies and client endpoint binding are not included here.
-The synchronous `CUUsers` data API does not select a Runtime or network endpoint.
+false`. Pharo performs the body in memory. A configured GemStone Runtime uses
+its default `CRGemStoneWorker`; transactional deliveries own dequeue, nested body
+rollback, acknowledgement and completion evidence in one outer commit. Runtime
+configuration and reconciliation create its worker through the normal launcher.
+Routing uses existing published named-service handles. Transactionality is a
+WorkUnit requirement, not a worker deployment option.
+
+The returned object is an ordinary handler result. Runtime's current automatic
+result completion rejects transactional WorkUnits, so committed asynchronous
+Connect replies and client endpoint binding are not included here. The synchronous
+`CUUsers` data API does not select a Runtime or network endpoint.
 
 The portable tests cover native result identity, business rejection, capability
-binding/expiry, named-service refusal and transaction declarations. Their direct
-capability/context checks do not claim a GemStone commit. The separate
-`scripts/qualify-create-user.topaz` uses an actual persistent queue and transaction
-backend. Run it in dedicated bvc Topaz sessions with these environment variables:
+binding/expiry, named-service refusal, service authority and transaction declarations.
+Their direct capability/context checks do not claim a GemStone commit.
 
-- `BVC_USERS_TRANSACTION_PHASE`: `execute`, then `verify` in a second Gem.
-- `BVC_USERS_TRANSACTION_ROOT`: a fresh temporary global name for this run.
-- `BVC_USERS_TRANSACTION_REPORT`: an absolute JSON output path.
+Run the socket-free native qualification against a development stone with the
+verified Runtime and Users production packages already loaded:
 
-The execute phase leaves the committed fixture root for inspection. Verification
-checks the committed user from the independent Gem, rollback after a deliberate
-post-insertion exception, super-user rejection, unrelated-WorkUnit denial and
-positive queue release. It then commits removal of only its created user and
-fixture root. Existing users remain. A failed phase preserves evidence and must
-be inspected before retrying; no mutation is automatically replayed.
+```sh
+python3 scripts/qualify-managed-create-user.py \
+  --project /absolute/path/to/bvc-project \
+  --deployment <development-stone> \
+  --bvc /absolute/path/to/bvc \
+  --output /absolute/path/to/new-evidence-directory
+```
+
+The runner loads only two data-only test WorkUnits, generates configuration,
+creates/starts a unique named Runtime through bvc, and waits for existing
+convergence evidence. It routes creation through the published Users service.
+A separate Gem verifies committed creation, rollback after insertion followed by
+an error, super-user rejection and unrelated-WorkUnit denial. It then removes
+service authority through live configuration, checks refusal without replacing
+worker Gems, and checks acknowledgement of work bearing an obsolete version.
+
+On success it stops/removes its Runtime and removes only its created user and
+fixture root, retaining the original users. Each phase has a JSON report and
+Topaz log. A failed phase retains its Runtime and evidence for inspection; it
+does not replay work or clean up an unknown outcome. The phase implementation is
+`scripts/qualify-create-user.topaz`. Run it only in dedicated sessions with the
+runner's environment. See [configured-Runtime evidence](../conformance/managed-create-user-2026-10-29.json).
 
 ## Metacello
 

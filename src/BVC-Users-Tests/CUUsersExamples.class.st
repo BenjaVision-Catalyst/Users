@@ -157,6 +157,21 @@ CUUsersExamples >> testNamedServiceExecutesUsersWork [
  work]
 ]
 
+{ #category : 'tests - creating' }
+CUUsersExamples >> testNonAuthoritativeServiceCannotCreateUser [
+ <gtExample>
+ | user users |
+ user := CUUser new name: 'Rejected non-authoritative creation'; yourself.
+ users := CUUsers allUsers.
+ self withWorkerDo: [ :worker |
+  | service configuration |
+  service := worker services serviceAtIdentifier: 'users'.
+  configuration := service configuration authoritative: false; serviceClass: CUUsersService; yourself.
+  worker services applyConfiguration: configuration serviceIdentifier: 'users' version: 1.
+  self should: [ (service providedCapabilityIfPresent: CUUsersCapability) createUser: user ] raise: CRCapabilityDeniedException.
+  self deny: (users identityIncludes: user) ]
+]
+
 { #category : 'tests - loading' }
 CUUsersExamples >> testProductionAndTestLoadGroupsAreSeparate [
  <gtExample>
@@ -260,16 +275,16 @@ CUUsersExamples >> testUsersCapabilityIsNotServiceControlAuthority [
 
 { #category : 'fixtures' }
 CUUsersExamples >> withWorkerDo: block [
-| worker result |
+ | worker result |
  worker := CRFinalizedResultTestWorker new.
  worker workerHandle workerIdentifier: #usersProjectTest.
  worker bindRuntime: CRRuntime new hostIdentifier: #usersProjectTest.
- worker services installServiceClass: CUUsersService serviceIdentifier: 'users' configuration: CRServiceConfiguration default.
- worker services installServiceClass: CUUsersService serviceIdentifier: 'otherUsers' configuration: CRServiceConfiguration default.
+ worker services installServiceClass: CUUsersService serviceIdentifier: 'users' configuration: (CRServiceConfiguration default authoritative: true; yourself).
+ worker services installServiceClass: CUUsersService serviceIdentifier: 'otherUsers' configuration: (CRServiceConfiguration default authoritative: true; yourself).
  worker start. worker workerHandle lifecycleStatus: CRStatus running.
  worker services startAll. worker publishHandleToTopology.
  [result := block value: worker] ensure: [
- [worker isWorkQueueEmpty] whileFalse: [worker executeWorkUnitInEnvelope: worker workerHandle workQueue nextForExecutionOrNil].
- worker stopAndUninstallServices. worker unpublishHandleFromTopology].
+  [worker isWorkQueueEmpty] whileFalse: [worker executeWorkUnitInEnvelope: worker workerHandle workQueue nextForExecutionOrNil].
+  worker stopAndUninstallServices. worker unpublishHandleFromTopology].
  ^ result
 ]
