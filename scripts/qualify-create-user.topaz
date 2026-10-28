@@ -1,0 +1,76 @@
+expectvalue true
+run
+| phase key path root queue backend worker samples report file created rolledBack elevated |
+phase := System gemEnvironmentVariable: 'BVC_USERS_TRANSACTION_PHASE'.
+key := System gemEnvironmentVariable: 'BVC_USERS_TRANSACTION_ROOT'.
+path := System gemEnvironmentVariable: 'BVC_USERS_TRANSACTION_REPORT'.
+(phase isNil or: [key isNil or: [path isNil]]) ifTrue: [self error: 'Set BVC_USERS_TRANSACTION_PHASE, BVC_USERS_TRANSACTION_ROOT and BVC_USERS_TRANSACTION_REPORT'].
+(#('execute' 'verify') includes: phase) ifFalse: [self error: 'Phase must be execute or verify'].
+key := key asSymbol.
+System abortTransaction. System transactionMode: #manualBegin.
+phase = 'execute' ifTrue: [
+ (UserGlobals includesKey: key) ifTrue: [self error: 'Qualification root already exists; inspect it before any retry'].
+ backend := CRGemStoneTransactionBackend completionRecorder: [:execution | | sample failure |
+  worker acknowledgeExecution: execution.
+  failure := execution failureEvidence.
+  sample := Dictionary new
+   at: 'workClass' put: execution workUnit class name asString;
+   at: 'successful' put: execution wasSuccessful;
+   at: 'transactionOutcome' put: execution transactionOutcome asString;
+   at: 'failureClass' put: (failure ifNil: [nil] ifNotNil: [failure errorClassName asString]); yourself.
+  (root at: #outcomes) add: sample].
+ backend duringOwnedTransaction: [
+  root := Dictionary new at: #queue put: CRGemStoneWorkQueue new;
+   at: #outcomes put: OrderedCollection new; at: #originalUsers put: CUUsers allUsers copy; yourself.
+  created := CUUser new name: 'Native createUser committed'; yourself.
+  rolledBack := CUUser new name: 'Native createUser rolled back'; yourself.
+  elevated := CUUser new name: 'Native createUser rejected super user'; isSuperUser: true; yourself.
+  root at: #createdUser put: created; at: #rolledBackUser put: rolledBack; at: #elevatedUser put: elevated.
+  UserGlobals at: key put: root.
+  queue := root at: #queue.
+  worker := CRGemStoneWorker new.
+  worker configureIdentifier: #usersCreateQualification hostIdentifier: #usersCreateQualification queue: queue using: backend.
+  worker workerHandle lifecycleStatus: CRStatus running.
+  worker services installServiceClass: CUUsersService serviceIdentifier: 'users' configuration: CRServiceConfiguration default.
+  worker services startAll].
+ backend duringOwnedTransaction: [
+  queue enqueue: ((CUCreateUserWorkUnit user: created) asEnvelope serviceIdentifier: 'users'; yourself).
+  queue enqueue: ((CUUsersFailAfterCreateTestWorkUnit user: rolledBack) asEnvelope serviceIdentifier: 'users'; yourself).
+  queue enqueue: ((CUCreateUserWorkUnit user: elevated) asEnvelope serviceIdentifier: 'users'; yourself).
+  queue enqueue: (CUUsersDeniedTestWorkUnit new asEnvelope serviceIdentifier: 'users'; yourself)].
+ 4 timesRepeat: [worker executeNextQueuedWork ifFalse: [self error: 'Expected queued Users delivery']].
+ worker stopAndUninstallServices.
+ System abortTransaction.
+ root := UserGlobals at: key.
+ (CUUsers allUsers identityIncludes: (root at: #createdUser)) ifFalse: [self error: 'Creation was not committed'].
+ (CUUsers allUsers identityIncludes: (root at: #rolledBackUser)) ifTrue: [self error: 'Failed body was not rolled back'].
+ report := Dictionary new at: 'phase' put: 'awaitingIndependentVerification'; at: 'root' put: key asString; yourself].
+phase = 'verify' ifTrue: [
+ root := UserGlobals at: key ifAbsent: [self error: 'No qualification root to verify'].
+ created := root at: #createdUser. rolledBack := root at: #rolledBackUser. elevated := root at: #elevatedUser.
+ samples := root at: #outcomes.
+ (samples size = 4 and: [(samples at: 1) at: 'successful']) ifFalse: [self error: 'Successful creation evidence differs'].
+ ((samples at: 1) at: 'transactionOutcome') = 'committed' ifFalse: [self error: 'Success was not committed'].
+ ((samples at: 2) at: 'successful') ifTrue: [self error: 'Rollback probe unexpectedly succeeded'].
+ ((samples at: 2) at: 'transactionOutcome') = 'aborted' ifFalse: [self error: 'Rollback outcome differs'].
+ ((samples at: 3) at: 'failureClass') = 'CUUserCreationError' ifFalse: [self error: 'Business rejection differs'].
+ ((samples at: 4) at: 'failureClass') = 'CRCapabilityDeniedException' ifFalse: [self error: 'Capability denial differs'].
+ (root at: #queue) isEmpty ifFalse: [self error: 'Queue ownership remains'].
+ (CUUsers allUsers identityIncludes: created) ifFalse: [self error: 'Created user is absent in the independent Gem'].
+ ((CUUsers allUsers identityIncludes: rolledBack) or: [CUUsers allUsers identityIncludes: elevated]) ifTrue: [self error: 'Rejected user persisted'].
+ CUUsers allUsers size = ((root at: #originalUsers) size + 1) ifFalse: [self error: 'Unexpected store change'].
+ (root at: #originalUsers) do: [:user | (CUUsers allUsers identityIncludes: user) ifFalse: [self error: 'Existing user changed']].
+ report := Dictionary new at: 'phase' put: 'verified'; at: 'independentGemRead' put: true;
+  at: 'committedCreation' put: true; at: 'rollbackAfterMutation' put: true;
+  at: 'superUserCreationRejected' put: true; at: 'unrelatedWorkDenied' put: true;
+  at: 'queueReleased' put: true; at: 'outcomes' put: samples asArray; yourself.
+ backend := CRGemStoneTransactionBackend completionRecorder: [:ignored | self error: 'No application work during cleanup'].
+ backend duringOwnedTransaction: [CUUsers allUsers remove: created. UserGlobals removeKey: key].
+ System abortTransaction.
+ (UserGlobals includesKey: key) ifTrue: [self error: 'Qualification root remains'].
+ (CUUsers allUsers identityIncludes: created) ifTrue: [self error: 'Qualification user remains'].
+ report at: 'cleanupCommitted' put: true].
+file := GsFile openWriteOnServer: path.
+[file nextPutAll: (STON toJsonString: report)] ensure: [file close].
+true
+%

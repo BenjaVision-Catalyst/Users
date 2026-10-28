@@ -20,22 +20,25 @@ the GT/GemStone-first development order.
 | --- | --- |
 | `BaselineOfCatalystUsers` | Metacello dependency and platform selections. |
 | `BVC-Users-Core` | Portable `CUUser` model and the `CUUsers` API. |
-| `BVC-Users-Runtime` | `CUUsersService`, its narrow `CUUsersCapability`, and the abstract `CUUsersWorkUnit` base. |
+| `BVC-Users-Runtime` | `CUUsersService`, its narrow `CUUsersCapability`, `CUCreateUserWorkUnit`, and the abstract `CUUsersWorkUnit` base. |
 | `BVC-Users-Tests` | Portable executable examples and test-only capability-binding probes. |
 
-Production defaults load Core and Runtime. The `core` group loads only the model. Tests are opt-in. Runtime's
+Production defaults load Core and Runtime. The `core` group loads the model and
+data API. Tests are opt-in. Runtime's
 `runtime-core` group selects its Pharo or GemStone backend. The Users baseline
 preserves an already registered Runtime repository rather than changing its
 checkout. Circular class references are loaded atomically.
 
 The service uses Runtime's existing service configuration, named placement,
 lifecycle and capability resolution. Users work declares its service and required
-capabilities. Unrelated WorkUnits cannot acquire Users authority. The current
-capability has no account operations yet; the project setup is not registration
-or authentication. The old DevKit `BVCUsers` plugin is not its superclass.
+capabilities. Unrelated WorkUnits cannot acquire Users authority. The capability
+exposes `createUser:` with service-activation fencing. Creation
+currently adds a regular user to the temporary store; caller authentication and
+tenant authority remain to be implemented. The old DevKit `BVCUsers` plugin is
+not its superclass.
 
 `CUUser` has a name and an `isSuperUser` flag, which defaults to false. Domain records, Magritte
-descriptions, persistence and real domain operations will be added under these ownership rules. No empty GT/GemStone adapter packages
+descriptions, tenant storage and further domain operations will follow these ownership rules. No empty GT/GemStone adapter packages
 are introduced before there is actual platform-specific behavior to put in them.
 Production currently has no Connect, Groups, UI, Swift, Unreal or test dependency.
 
@@ -50,13 +53,52 @@ duplicate defaults. `CUUsers admin` and `CUUsers unknownUser` return the shared
 default user objects.
 
 ```smalltalk
-CUUsers addUser: CUUser new.
+CUUsers createUser: (CUUser new name: 'Ada'; yourself).
 CUUsers allUsers.
 ```
 
 This shared collection is the temporary store until the tenant model supplies
 ownership and storage. In GemStone, callers own the transaction and commit;
 the API does not begin or commit transactions itself.
+
+## createUser
+
+The synchronous data API is `CUUsers createUser: aUser`. It stores and returns the
+same `CUUser`. It rejects other object types, super-user creation and insertion of
+an object already in `AllUsers` with `CUUserCreationError`. Names are labels at this
+stage; this increment introduces no username uniqueness or identity policy.
+`addUser:` remains the lower-level storage helper.
+
+`CUUsersService>>createUser:` delegates to that data API. Runtime-facing callers
+use `CUCreateUserWorkUnit user: aUser`, addressed to the configured Users service.
+Its inherited contract requires `CUUsersCapability`; the capability is fenced to
+the service activation and cannot be reused after stop/restart. No transport
+capability or reply construction occurs in the domain handler.
+
+The WorkUnit declares `requiresTransaction = true` and `allowsConflictReplay =
+false`. Pharo performs the body in memory. GemStone's local, nontransactional
+worker refuses it; the persistent worker owns dequeue, body, commit and outcome
+evidence. The returned object is an ordinary handler result. Runtime's current
+automatic result completion rejects transactional WorkUnits, so committed
+asynchronous Connect replies and client endpoint binding are not included here.
+The synchronous `CUUsers` data API does not select a Runtime or network endpoint.
+
+The portable tests cover native result identity, business rejection, capability
+binding/expiry, named-service refusal and transaction declarations. Their direct
+capability/context checks do not claim a GemStone commit. The separate
+`scripts/qualify-create-user.topaz` uses an actual persistent queue and transaction
+backend. Run it in dedicated bvc Topaz sessions with these environment variables:
+
+- `BVC_USERS_TRANSACTION_PHASE`: `execute`, then `verify` in a second Gem.
+- `BVC_USERS_TRANSACTION_ROOT`: a fresh temporary global name for this run.
+- `BVC_USERS_TRANSACTION_REPORT`: an absolute JSON output path.
+
+The execute phase leaves the committed fixture root for inspection. Verification
+checks the committed user from the independent Gem, rollback after a deliberate
+post-insertion exception, super-user rejection, unrelated-WorkUnit denial and
+positive queue release. It then commits removal of only its created user and
+fixture root. Existing users remain. A failed phase preserves evidence and must
+be inspected before retrying; no mutation is automatically replayed.
 
 ## Metacello
 

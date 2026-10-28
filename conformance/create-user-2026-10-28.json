@@ -1,0 +1,117 @@
+{
+  "date": "2026-10-28",
+  "operation": "createUser:",
+  "gt": {
+    "examplesPassed": 16,
+    "sunitPassed": 16,
+    "failures": 0,
+    "errors": 0,
+    "sourceSnapshotsMatch": true
+  },
+  "nativeContracts": {
+    "baselineDefaultPackages": [
+      "BVC-Users-Runtime",
+      "BVC-Users-Core"
+    ],
+    "platform": "CRGemStonePlatform",
+    "contracts": [
+      "testCreateUserCapabilityExpiresOnRestart",
+      "testCreateUserMissingServiceDoesNotMutate",
+      "testCreateUserQueueHonoursTransactionRequirement",
+      "testCreateUserRejectsDuplicateObject",
+      "testCreateUserRejectsInvalidOrElevatedUser",
+      "testCreateUserStoresNativeUser",
+      "testCreateUserWorkUnitUsesNamedCapability",
+      "testDefaultUsers",
+      "testNamedServiceExecutesUsersWork",
+      "testProductionAndTestLoadGroupsAreSeparate",
+      "testStoppedServiceCannotExecuteWork",
+      "testTransactionalCreationRejectsAutomaticCompletion",
+      "testUnavailableNameDoesNotFallBack",
+      "testUnrelatedWorkCannotAcquireUsersCapability",
+      "testUsersApiRetainsUsers",
+      "testUsersCapabilityIsNotServiceControlAuthority"
+    ],
+    "stone": "bvc_foundation_portable",
+    "passed": 16,
+    "defaultUsers": [
+      [
+        "admin",
+        true
+      ],
+      [
+        "unknownUser",
+        false
+      ]
+    ],
+    "sourceDefinitions": [
+      [
+        "BaselineOfCatalystUsers",
+        4
+      ],
+      [
+        "BVC-Users-Core",
+        13
+      ],
+      [
+        "BVC-Users-Runtime",
+        18
+      ],
+      [
+        "BVC-Users-Tests",
+        29
+      ]
+    ],
+    "rowanMetadataFiles": 9,
+    "rowanInstalled": false,
+    "directRowanLoadQualified": false,
+    "loadMechanism": "Native Tonel/Gofer with installed Runtime prerequisites"
+  },
+  "nativeTransactions": {
+    "outcomes": [
+      {
+        "workClass": "CUCreateUserWorkUnit",
+        "successful": true,
+        "failureClass": null,
+        "transactionOutcome": "committed"
+      },
+      {
+        "workClass": "CUUsersFailAfterCreateTestWorkUnit",
+        "successful": false,
+        "failureClass": "UserDefinedError",
+        "transactionOutcome": "aborted"
+      },
+      {
+        "workClass": "CUCreateUserWorkUnit",
+        "successful": false,
+        "failureClass": "CUUserCreationError",
+        "transactionOutcome": "aborted"
+      },
+      {
+        "workClass": "CUUsersDeniedTestWorkUnit",
+        "successful": false,
+        "failureClass": "CRCapabilityDeniedException",
+        "transactionOutcome": "aborted"
+      }
+    ],
+    "rollbackAfterMutation": true,
+    "phase": "verified",
+    "independentGemRead": true,
+    "committedCreation": true,
+    "unrelatedWorkDenied": true,
+    "superUserCreationRejected": true,
+    "queueReleased": true,
+    "cleanupCommitted": true
+  },
+  "scope": {
+    "storage": "Temporary AllUsers class variable",
+    "inputAndResult": "A native CUUser; stored result is the same object",
+    "workUnit": "CUCreateUserWorkUnit",
+    "requiresTransaction": true,
+    "allowsConflictReplay": false,
+    "connectTransactionalCompletion": false,
+    "callerAuthentication": false,
+    "tenantAuthority": false,
+    "namesAreUniqueIdentifiers": false
+  }
+}

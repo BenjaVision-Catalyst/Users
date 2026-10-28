@@ -27,6 +27,14 @@ CUUsers class >> allUsers [
  ^ AllUsers ifNil: [AllUsers := self newAllUsers]
 ]
 
+{ #category : 'creating' }
+CUUsers class >> createUser: aUser [
+ (aUser isKindOf: CUUser) ifFalse: [CUUserCreationError signal: 'A CUUser is required.'].
+ aUser isSuperUser ifTrue: [CUUserCreationError signal: 'Creating super users is not supported.'].
+ (self allUsers identityIncludes: aUser) ifTrue: [CUUserCreationError signal: 'The user is already stored.'].
+ ^ self addUser: aUser
+]
+
 { #category : 'private' }
 CUUsers class >> newAllUsers [
  ^ OrderedCollection

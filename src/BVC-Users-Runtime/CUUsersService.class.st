@@ -1,5 +1,5 @@
 "
-Users Runtime service foundation. Runtime owns lifecycle, service placement and capability resolution. This initial project setup does not implement account storage, registration or authentication.
+Users Runtime service. createUser: delegates to the shared CUUsers data API. Runtime owns named placement, capability binding and transaction boundaries. Creating users does not authenticate a caller or establish tenant ownership.
 "
 Class {
 	#name : 'CUUsersService',
@@ -7,6 +7,12 @@ Class {
 	#category : 'BVC-Users-Runtime',
 	#package : 'BVC-Users-Runtime'
 }
+
+{ #category : 'users api' }
+CUUsersService >> createUser: aUser [
+ (self isCurrentResultEpoch: self resultEpoch) ifFalse: [CRCapabilityDeniedException signal: 'Users service is not active.'].
+ ^ CUUsers createUser: aUser
+]
 
 { #category : 'lifecycle' }
 CUUsersService >> start [

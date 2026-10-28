@@ -5,6 +5,123 @@ Class {
 	#package : 'BVC-Users-Tests'
 }
 
+{ #category : 'tests - creating' }
+CUUsersExamples >> testCreateUserCapabilityExpiresOnRestart [
+ <gtExample>
+ <return: #CUUser>
+ | user users |
+ users := CUUsers allUsers. user := CUUser new name: 'Fresh Users epoch'; yourself.
+ [self withWorkerDo: [:worker | | service old current |
+  service := worker services serviceAtIdentifier: 'users'.
+  old := service providedCapabilityIfPresent: CUUsersCapability.
+  worker services stopService: service.
+  self should: [old createUser: user] raise: CRCapabilityDeniedException.
+  worker services startServiceIdentifier: 'users'.
+  self should: [old createUser: user] raise: CRCapabilityDeniedException.
+  self deny: (users identityIncludes: user).
+  current := service providedCapabilityIfPresent: CUUsersCapability.
+  self assert: (current createUser: user) == user]]
+ ensure: [users remove: user ifAbsent: []].
+ ^ user
+]
+
+{ #category : 'tests - creating' }
+CUUsersExamples >> testCreateUserMissingServiceDoesNotMutate [
+ <gtExample>
+ <return: #CUCreateUserWorkUnit>
+ | user work users original |
+ users := CUUsers allUsers. original := users copy.
+ user := CUUser new name: 'Missing Users destination'; yourself.
+ work := CUCreateUserWorkUnit user: user.
+ self withWorkerDo: [:worker |
+  self should: [(CRWorkRouter deploymentTopology: worker runtime deploymentTopology)
+   enqueue: (work asEnvelope serviceIdentifier: 'missingUsers'; yourself)]
+   raise: CRNoWorkerHostingRequiredServiceException.
+  self assert: worker isWorkQueueEmpty].
+ self assert: users equals: original.
+ ^ work
+]
+
+{ #category : 'tests - creating' }
+CUUsersExamples >> testCreateUserQueueHonoursTransactionRequirement [
+ <gtExample>
+ <return: #CUCreateUserWorkUnit>
+ | user work users localGemStone |
+ users := CUUsers allUsers. user := CUUser new name: 'Queued create user example'; yourself.
+ work := CUCreateUserWorkUnit user: user.
+ [self withWorkerDo: [:worker |
+  localGemStone := worker executionStrategy class name asString = 'CRGemStoneLocalExecutionStrategy'.
+  (CRWorkRouter deploymentTopology: worker runtime deploymentTopology)
+   enqueue: (work asEnvelope serviceIdentifier: 'users'; yourself).
+  self deny: (users identityIncludes: user).
+  worker executeWorkUnitInEnvelope: worker workerHandle workQueue nextForExecutionOrNil.
+  localGemStone ifTrue: [
+   self deny: (users identityIncludes: user).
+   self assert: worker workerHandle failedWorkUnitExecutions size equals: 1.
+   self assert: worker workerHandle failedWorkUnitExecutions asArray first errorClassName asString equals: 'CRWorkUnitTransactionError']
+  ifFalse: [self assert: (users identityIncludes: user). self assert: worker workerHandle failedWorkUnitExecutions isEmpty].
+  self assert: worker isWorkQueueEmpty]]
+ ensure: [users remove: user ifAbsent: []].
+ ^ work
+]
+
+{ #category : 'tests - creating' }
+CUUsersExamples >> testCreateUserRejectsDuplicateObject [
+ <gtExample>
+ <return: #CUUser>
+ | user users size |
+ users := CUUsers allUsers. user := CUUser new name: 'Duplicate create user example'; yourself.
+ [CUUsers createUser: user. size := users size.
+  self should: [CUUsers createUser: user] raise: CUUserCreationError.
+  self assert: users size equals: size]
+ ensure: [users remove: user ifAbsent: []].
+ ^ user
+]
+
+{ #category : 'tests - creating' }
+CUUsersExamples >> testCreateUserRejectsInvalidOrElevatedUser [
+ <gtExample>
+ <return: #CUUser>
+ | users original user |
+ users := CUUsers allUsers. original := users copy.
+ user := CUUser new name: 'Rejected super user'; isSuperUser: true; yourself.
+ self should: [CUUsers createUser: Object new] raise: CUUserCreationError.
+ self should: [CUUsers createUser: user] raise: CUUserCreationError.
+ self assert: users equals: original.
+ ^ user
+]
+
+{ #category : 'tests - creating' }
+CUUsersExamples >> testCreateUserStoresNativeUser [
+ <gtExample>
+ <return: #CUUser>
+ | user users |
+ users := CUUsers allUsers. user := CUUser new name: 'Create user example'; yourself.
+ [self assert: (CUUsers createUser: user) == user.
+  self assert: (users identityIncludes: user).
+  self deny: user isSuperUser]
+ ensure: [users remove: user ifAbsent: []].
+ ^ user
+]
+
+{ #category : 'tests - creating' }
+CUUsersExamples >> testCreateUserWorkUnitUsesNamedCapability [
+ <gtExample>
+ <return: #CUCreateUserWorkUnit>
+ | user work users |
+ users := CUUsers allUsers. user := CUUser new name: 'Bound create user example'; yourself.
+ work := CUCreateUserWorkUnit user: user.
+ [self withWorkerDo: [:worker | | execution |
+  execution := CRWorkUnitExecution envelope: (work asEnvelope serviceIdentifier: 'users'; yourself).
+  worker prepareWorkUnitExecution: execution.
+  self assert: (work executeInContext: execution context) == user.
+  self assert: (users identityIncludes: user).
+  self assert: work class requiresTransaction.
+  self deny: work class allowsConflictReplay]]
+ ensure: [users remove: user ifAbsent: []].
+ ^ work
+]
+
 { #category : 'tests - api' }
 CUUsersExamples >> testDefaultUsers [
  <gtExample>
@@ -53,8 +170,8 @@ CUUsersExamples >> testProductionAndTestLoadGroupsAreSeparate [
  self assert: (version packageNamed: 'BVC-Users-Runtime') requires asArray equals: #('BVC-Users-Core' 'CatalystRuntime').
  coreClasses := (((MCPackage named: 'BVC-Users-Core') snapshot definitions select: [:definition | definition isClassDefinition]) collect: [:definition | definition className asString]) asArray sorted.
  runtimeClasses := (((MCPackage named: 'BVC-Users-Runtime') snapshot definitions select: [:definition | definition isClassDefinition]) collect: [:definition | definition className asString]) asArray sorted.
- self assert: coreClasses equals: #('CUUser' 'CUUsers').
- self assert: runtimeClasses equals: #('CUUsersCapability' 'CUUsersService' 'CUUsersWorkUnit').
+ self assert: coreClasses equals: #('CUUser' 'CUUserCreationError' 'CUUsers').
+ self assert: runtimeClasses equals: #('CUCreateUserWorkUnit' 'CUUsersCapability' 'CUUsersService' 'CUUsersWorkUnit').
  ^ version
 ]
 
@@ -69,6 +186,17 @@ CUUsersExamples >> testStoppedServiceCannotExecuteWork [
   enqueue: (work asEnvelope serviceIdentifier: 'users'; yourself)]
  raise: CRNoWorkerHostingRequiredServiceException.
  self deny: work executed. self assert: worker isWorkQueueEmpty. work]
+]
+
+{ #category : 'tests - creating' }
+CUUsersExamples >> testTransactionalCreationRejectsAutomaticCompletion [
+ <gtExample>
+ <return: #CRWorkUnitEnvelope>
+ | envelope |
+ envelope := (CUCreateUserWorkUnit user: CUUser new) asEnvelope.
+ self should: [envelope resultCompletion: CRWorkUnitResultCompletion new] raise: Error.
+ self assert: envelope resultCompletion isNil.
+ ^ envelope
 ]
 
 { #category : 'tests' }
