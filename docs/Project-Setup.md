@@ -40,7 +40,9 @@ not its superclass.
 `CUUser` has a name and an `isSuperUser` flag, which defaults to false. Domain records, Magritte
 descriptions, tenant storage and further domain operations will follow these ownership rules. No empty GT/GemStone adapter packages
 are introduced before there is actual platform-specific behavior to put in them.
-Production currently has no Connect, Groups, UI, Swift, Unreal or test dependency.
+The default production load has no Connect, Groups, UI, Swift, Unreal or test dependency.
+The optional `connect` group supplies the described client and post-commit result
+composition documented in [Users through Connect](Connect-CreateUser.md).
 
 ## Temporary Users API
 
@@ -84,9 +86,9 @@ configuration and reconciliation create its worker through the normal launcher.
 Routing uses existing published named-service handles. Transactionality is a
 WorkUnit requirement, not a worker deployment option.
 
-The returned object is an ordinary handler result. Runtime's current automatic
-result completion rejects transactional WorkUnits, so committed asynchronous
-Connect replies and client endpoint binding are not included here. The synchronous
+The returned object is an ordinary handler result. Ordinary automatic result completion still rejects transactional WorkUnits.
+The optional Connect composition explicitly selects the native post-commit boundary
+and returns a described `CUUser` after confirmed commit. The synchronous
 `CUUsers` data API does not select a Runtime or network endpoint.
 
 The portable tests cover native result identity, business rejection, capability

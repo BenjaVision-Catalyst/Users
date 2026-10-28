@@ -1,0 +1,67 @@
+expectvalue true
+run
+| directory phase runtimeName key file parameters runtime report root configuration target connect users orchestrator control application wait hosts samples created |
+System abortTransaction. System transactionMode: #manualBegin.
+directory := System gemEnvironmentVariable: 'BVC_USERS_CONNECT_DIRECTORY'.
+phase := System gemEnvironmentVariable: 'BVC_USERS_CONNECT_PHASE'.
+(#('configure' 'verify' 'deny' 'cleanup') includes: phase) ifFalse: [self error: 'Unknown qualification phase'].
+file := GsFile openReadOnServer: directory, '/parameters.json'. [parameters := STONJSON fromString: file contents] ensure: [file close].
+runtimeName := parameters at: 'runtime'. key := (runtimeName, '_qualification') asSymbol.
+runtime := CRRuntimeRegistry default runtimeNamed: runtimeName.
+report := Dictionary new at: 'phase' put: phase; at: 'runtime' put: runtimeName; yourself.
+wait := [:predicate | | deadline | deadline := CRPlatform current currentMillis + 20000.
+ [System abortTransaction. predicate value or: [CRPlatform current currentMillis >= deadline]] whileFalse: [(Delay forMilliseconds: 25) wait].
+ predicate value ifFalse: [self error: 'Timed out; inspect retained Runtime and evidence']].
+phase = 'configure' ifTrue: [
+ runtime ifNotNil: [self error: 'Runtime already exists'].
+ (UserGlobals includesKey: key) ifTrue: [self error: 'Fixture already exists'].
+ file := GsFile openReadOnServer: directory, '/gs-options.json'.
+ [connect := CCQuicConfiguration new identifier: #connect; label: 'Users Connect'; nativeOptionsJson: file contents;
+  libraryPath: (parameters at: 'library'); allowedOperations: #(1 65534); principal: 'gt-client'; applicationClass: CUUsersConnectTestApplication; yourself] ensure: [file close].
+ target := CRServiceBindingConfiguration new identifier: #users; label: 'Users'; serviceIdentifier: #users; yourself.
+ connect bindings: {target}.
+ users := CRServiceConfiguration new identifier: #users; label: 'Authoritative Users'; serviceClass: CUUsersService; authoritative: true; yourself.
+ orchestrator := CROrchestrationConfiguration default heartbeatIntervalMillis: 500; reconcileIntervalMillis: 100; yourself.
+ configuration := CRRuntimeConfiguration new label: 'Committed Users endpoint'; services: {orchestrator. connect. users}; yourself.
+ control := CRHostConfiguration new identifier: #aControl; label: 'Control'; address: 'localhost'; maxProcesses: 1; services: {CRRuntime orchestratorIdentifier}; yourself.
+ application := CRHostConfiguration new identifier: #application; label: 'Users endpoint'; address: 'localhost'; maxProcesses: 1; services: {#connect. #users}; yourself.
+ configuration topology: (CRTopologyConfiguration new hosts: {control. application}; placementStrategyConfiguration: CRRoundRobinPlacementStrategyConfiguration new; yourself).
+ configuration deployment serviceDeployments: {CRServiceDeploymentConfiguration new serviceIdentifier: CRRuntime orchestratorIdentifier; label: 'Orchestrator'; initialCount: 1; yourself. CRServiceDeploymentConfiguration new serviceIdentifier: #connect; label: 'Connect'; initialCount: 1; yourself. CRServiceDeploymentConfiguration new serviceIdentifier: #users; label: 'Users'; initialCount: 1; yourself}.
+ configuration failureEvidenceConfiguration captureDebugArtifacts: false.
+ configuration validate isValid ifFalse: [self error: 'Invalid native Users configuration'].
+ (GsFile openWriteOnServer: directory, '/runtime.ston') nextPutAll: (CRRuntimeConfigurationCodec toString: configuration); close.
+ CRGemStoneRuntime duringTransaction: [UserGlobals at: key put: (Dictionary new at: #originalUsers put: CUUsers allUsers copy; yourself)]].
+phase = 'verify' ifTrue: [
+ root := UserGlobals at: key. hosts := runtime nativeHosts values select: [:host | ((runtime publications at: host workerIdentifier) serviceHandleForIdentifier: #users) notNil].
+ hosts size = 1 ifFalse: [self error: 'Expected one configured Users worker'].
+ hosts first class == CRGemStoneWorkerHost ifFalse: [self error: 'Expected default worker host'].
+ created := CUUsers allUsers select: [:user | user name beginsWith: (parameters at: 'prefix')].
+ (created size = 1 and: [created first name = ((parameters at: 'prefix'), ':committed')]) ifFalse: [self error: 'Committed Users store differs'].
+ (root at: #originalUsers) do: [:user | (CUUsers allUsers identityIncludes: user) ifFalse: [self error: 'Original user missing']].
+ samples := hosts first executionMetrics samples select: [:sample | sample workUnitClass == CUUsersRollbackMessageFixture].
+ (samples allSatisfy: [:sample | sample completionRecordingOutcome = #recorded]) ifFalse: [self error: 'Completion evidence was not recorded'].
+ phase = 'verify' ifTrue: [
+  (hosts first failures asArray anySatisfy: [:failure | failure errorMessage includesSubstring: 'Qualification failure after Users insertion.']) ifFalse: [self error: 'Rollback-after-insertion evidence missing']].
+ report at: 'independentGemRead' put: true; at: 'committedUser' put: created first name; at: 'onlySuccessfulUserPersisted' put: true;
+  at: 'outcomes' put: (samples collect: [:sample | {sample isSuccessful. sample transactionOutcome asString. sample completionRecordingOutcome asString}]) asArray;
+  at: 'failures' put: (hosts first failures asArray collect: [:failure | {failure errorClassName asString. failure errorMessage}])].
+phase = 'deny' ifTrue: [
+ configuration := runtime configuration. users := runtime configuration version.
+ (configuration serviceConfigurationNamed: #users) authoritative: false.
+ connect := false.
+ [runtime configure: configuration] on: CRInvalidRuntimeConfigurationException do: [:error | connect := true].
+ (connect and: [runtime configuration version = users and: [(runtime configuration serviceConfigurationNamed: #users) isAuthoritative]])
+  ifFalse: [self error: 'Invalid authority removal changed the accepted configuration'].
+ report at: 'configurationVersion' put: runtime configuration version; at: 'invalidAuthorityRemovalRejected' put: true].
+phase = 'cleanup' ifTrue: [
+ runtime ifNotNil: [self error: 'Stop and remove qualification Runtime before cleanup'].
+ root := UserGlobals at: key.
+ CRGemStoneRuntime duringTransaction: [
+  created := CUUsers allUsers select: [:user | user name beginsWith: (parameters at: 'prefix')].
+  created do: [:user | CUUsers allUsers remove: user].
+  (root at: #originalUsers) do: [:user | (CUUsers allUsers identityIncludes: user) ifFalse: [self error: 'Original user missing']].
+  UserGlobals removeKey: key].
+ report at: 'createdUsersRemoved' put: created size; at: 'originalUsersPreserved' put: true; at: 'fixtureRemoved' put: true].
+(GsFile openWriteOnServer: directory, '/', phase, '.json') nextPutAll: (STON toJsonString: report); close.
+true
+%

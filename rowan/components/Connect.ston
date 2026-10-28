@@ -1,0 +1,7 @@
+RwSimpleProjectLoadComponentV2 {
+ #name : 'Connect',
+ #projectNames : [ 'CatalystConnectObjects' ],
+ #componentNames : [ 'Runtime' ],
+ #packageNames : [ 'BVC-Users-Connect-Core' ],
+ #comment : 'Optional described Users client and transactional message composition'
+}

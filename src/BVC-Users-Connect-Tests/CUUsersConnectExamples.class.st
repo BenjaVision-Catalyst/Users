@@ -1,0 +1,66 @@
+Class {
+	#name : 'CUUsersConnectExamples',
+	#superclass : 'TestCase',
+	#category : 'BVC-Users-Connect-Tests',
+	#package : 'BVC-Users-Connect-Tests'
+}
+
+{ #category : 'fixtures' }
+CUUsersConnectExamples >> configuration [
+ ^ CCQuicConfiguration new identifier: #connect; principal: 'usersAuthority'; bindings: {CRServiceBindingConfiguration new identifier: #users; label: 'Users'; serviceIdentifier: #users; runtimeIdentifier: 'usersAuthority'; connectServiceIdentifier: #connect; yourself}; yourself
+]
+
+{ #category : 'tests' }
+CUUsersConnectExamples >> testClientBeforeReadinessDoesNotCreateAUser [
+ <gtExample>
+ <return: #CCObjectFuture>
+ | client future binding |
+ binding := CUUsersObjectApplication new bindingFor: self configuration.
+ client := CUUsersClient new endpoint: (CCObjectEndpoint new binding: binding transport: CCQuicService new).
+ future := client createUser: (CUUser new name: 'Not submitted'; yourself).
+ self assert: future state equals: #unavailable. ^ future
+]
+
+{ #category : 'tests' }
+CUUsersConnectExamples >> testConfiguredBindingRetainsUsersTransactionAndCapabilityContracts [
+ <gtExample>
+ <return: #CCObjectBinding>
+ | binding completion envelope |
+ binding := CUUsersObjectApplication new bindingFor: self configuration.
+ self assert: binding requiresTransaction.
+ self assert: (CUUsersCapability canBeGrantedToWorkUnitClass: CUCreateUserMessageWork).
+ self assert: CUCreateUserMessageWork serviceClass == CUUsersService.
+ completion := CCObjectResultCompletion new binding: binding response: CCObjectDeferredResponse new probe: false.
+ envelope := CUCreateUserMessageWork new asEnvelope resultCompletion: completion; yourself.
+ self assert: completion afterCommit. self assert: completion afterFinalization.
+ self deny: CUCreateUserMessageWork allowsConflictReplay. ^ binding
+]
+
+{ #category : 'tests' }
+CUUsersConnectExamples >> testNativeUserDescriptionRoundTrip [
+ <gtExample>
+ <return: #CUUser>
+ | original schema result |
+ original := CUUser new name: 'Client-created user'; yourself.
+ schema := CCObjectSchema forObject: original. result := schema decode: (schema encode: original).
+ self assert: result class == CUUser. self assert: result name equals: original name.
+ self deny: result isSuperUser. self deny: result == original. ^ result
+]
+
+{ #category : 'tests' }
+CUUsersConnectExamples >> testWrongConfiguredPeerCannotCreateUsersEndpoint [
+ <gtExample>
+ <return: #CCQuicConfiguration>
+ | configuration |
+ configuration := self configuration principal: 'anotherAuthority'; yourself.
+ self should: [CUUsersObjectApplication new bindingFor: configuration] raise: Error. ^ configuration
+]
+
+{ #category : 'tests' }
+CUUsersConnectExamples >> testWrongConnectServiceCannotCreateUsersEndpoint [
+ <gtExample>
+ <return: #CCQuicConfiguration>
+ | configuration |
+ configuration := self configuration identifier: #anotherConnect; yourself.
+ self should: [CUUsersObjectApplication new bindingFor: configuration] raise: Error. ^ configuration
+]

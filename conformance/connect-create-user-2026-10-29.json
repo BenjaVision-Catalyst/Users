@@ -1,0 +1,278 @@
+{
+  "date": "2026-10-29",
+  "operation": "createUser:",
+  "platform": "GT/Pharo client and GemStone 3.7.5 arm64 macOS server",
+  "runtimeBase": "90eb397",
+  "connectBase": "98b6688",
+  "usersBase": "581144d",
+  "path": [
+    "GT Runtime created from configuration",
+    "CUUsersClient createUser: with native CUUser",
+    "configured Connect object binding and pinned mutual TLS",
+    "configured GemStone Runtime default CRGemStoneWorker",
+    "existing published named #users routing in the application Gem",
+    "CUCreateUserMessageWork delegates to CUCreateUserWorkUnit/CUUsersService",
+    "confirmed outer commit and recorded evidence",
+    "generation-fenced described native CUUser result"
+  ],
+  "nativeUnitChecks": {
+    "run": 20,
+    "failedTests": [],
+    "failures": 0,
+    "errors": 0,
+    "errorTests": []
+  },
+  "gtChecks": {
+    "passed": 99,
+    "failures": 0,
+    "errors": 0,
+    "classes": [
+      "CRResultCompletionExamples",
+      "CRExecutionCompletionExamples",
+      "CRFinalizedResultExamples",
+      "CRRoutedSubmissionExamples",
+      "CCObjectMessagingExamples",
+      "CUUsersExamples",
+      "CUUsersConnectExamples",
+      "CUUsersConnectNativeScenario (loader contract only)"
+    ]
+  },
+  "nativeQualification": {
+    "runtime": "users_connect_81a3ae83c49f",
+    "serverRuntimeIdentifier": "81m8qndouk3ntyeifcw515wf0",
+    "serverWorkerPids": [
+      7295,
+      7343
+    ],
+    "serverServices": [
+      {
+        "host": "application",
+        "services": [
+          "connect",
+          "users"
+        ]
+      },
+      {
+        "host": "aControl",
+        "services": [
+          "runtimeOrchestrator"
+        ]
+      }
+    ],
+    "client": {
+      "results": [
+        {
+          "nativeClass": "CUUser",
+          "name": "users_connect_81a3ae83c49f_user:committed",
+          "state": "completed"
+        },
+        {
+          "name": "users_connect_81a3ae83c49f_user:rollback",
+          "state": "unknown"
+        },
+        {
+          "name": "users_connect_81a3ae83c49f_user:super",
+          "state": "unknown"
+        }
+      ],
+      "configurationVersion": 1,
+      "runtimeIdentifier": "4ds8jiftqxnf8wja98tj6vfxr",
+      "clientStoreUnchanged": true,
+      "converged": true,
+      "workerIdentifiers": [
+        "w000001"
+      ],
+      "createdFromConfiguration": true,
+      "runtimeStopped": true,
+      "service": {
+        "statistics": {
+          "drives": 35,
+          "admitted": 4,
+          "port": 54726,
+          "copyBytes": 257,
+          "published": 0,
+          "pendingPeak": 1,
+          "refused": 0,
+          "callPeak": 2,
+          "completionRetries": 0,
+          "completionWrites": 0,
+          "nativePhase": 1,
+          "copyPeak": 137
+        },
+        "stopping": false,
+        "buffersReleased": true
+      }
+    },
+    "phases": {
+      "configure": {
+        "phase": "configure",
+        "runtime": "users_connect_81a3ae83c49f"
+      },
+      "verify": {
+        "outcomes": [
+          [
+            true,
+            "committed",
+            "recorded"
+          ],
+          [
+            true,
+            "committed",
+            "recorded"
+          ],
+          [
+            false,
+            "aborted",
+            "recorded"
+          ],
+          [
+            false,
+            "aborted",
+            "recorded"
+          ]
+        ],
+        "committedUser": "users_connect_81a3ae83c49f_user:committed",
+        "phase": "verify",
+        "independentGemRead": true,
+        "runtime": "users_connect_81a3ae83c49f",
+        "onlySuccessfulUserPersisted": true,
+        "failures": [
+          [
+            "UserDefinedError",
+            "a UserDefinedError occurred (error 2318), reason:halt, Qualification failure after Users insertion."
+          ],
+          [
+            "CUUserCreationError",
+            "a CUUserCreationError occurred (error 2710), Creating super users is not supported."
+          ]
+        ]
+      },
+      "deny": {
+        "configurationVersion": 1,
+        "runtime": "users_connect_81a3ae83c49f",
+        "phase": "deny",
+        "invalidAuthorityRemovalRejected": true
+      },
+      "cleanup": {
+        "originalUsersPreserved": true,
+        "phase": "cleanup",
+        "runtime": "users_connect_81a3ae83c49f",
+        "createdUsersRemoved": 1,
+        "fixtureRemoved": true
+      }
+    },
+    "workerGemsPreserved": true,
+    "mcpGate": {
+      "servers": 1,
+      "originalRegistriesRestored": true,
+      "preexistingCalls": 1,
+      "state": "released",
+      "quiescenceElapsedMillis": 39,
+      "refusedCalls": 0
+    },
+    "passed": true
+  },
+  "sourceVerification": {
+    "nativeAdaptersPackageCountsAndDifferences": [
+      [
+        "BVC-Runtime-Worker-GemStone",
+        47,
+        0
+      ],
+      [
+        "BVC-Runtime-Kernel-GemStone",
+        15,
+        0
+      ],
+      [
+        "BVC-Runtime-Tests-Kernel-GemStone",
+        25,
+        0
+      ]
+    ],
+    "nativeSharedClassMethodCountsAndDifferences": [
+      [
+        "BVC-Runtime-Worker-Core",
+        100,
+        0,
+        0,
+        [],
+        []
+      ],
+      [
+        "BVC-Runtime-Tests-Worker-Core",
+        16,
+        0,
+        0,
+        [],
+        []
+      ],
+      [
+        "BVC-Connect-Objects-Core",
+        62,
+        0,
+        0,
+        [],
+        []
+      ],
+      [
+        "BVC-Connect-Objects-GemStone",
+        4,
+        0,
+        0,
+        [],
+        []
+      ],
+      [
+        "BVC-Connect-Objects-Tests",
+        56,
+        0,
+        0,
+        [],
+        []
+      ],
+      [
+        "BVC-Users-Connect-Core",
+        15,
+        0,
+        0,
+        [],
+        []
+      ],
+      [
+        "BVC-Users-Connect-Tests",
+        11,
+        0,
+        0,
+        [],
+        []
+      ]
+    ],
+    "gtExportPackagesMatch": true,
+    "nativeExportMechanism": "TonelMCWriter/Reader inside Topaz; selected files verified in an independent checkout",
+    "sharedSourceAuthority": "GT MCP compilation and TonelWriter export"
+  },
+  "preserved": {
+    "connectDevVersion": 1,
+    "connectDevWorkerPids": [
+      53426,
+      53488
+    ],
+    "gtRebuilt": false,
+    "privateGtManagementConnectionAdded": false,
+    "connectNativeProtocolAndAbiChanged": false,
+    "connectBenchmarkHarnessChanged": false
+  },
+  "limits": [
+    "Connect and Users share a configured application worker; activation-local result tickets cannot cross Gems",
+    "Failure after admission maps to unknown, without mutation replay; typed business-error results are not added",
+    "Commit rejection/uncertainty is fault-injected at the backend-double boundary; the real native run proves committed persistence and rollback after insertion",
+    "Qualification selects an explicit test application adapter for post-insertion failure; the ordinary Users handler and production message path are reused",
+    "No durable outbox or exactly-once reconnect/recovery promise",
+    "Temporary AllUsers store; tenant model and caller/account authentication remain deferred",
+    "Rowan metadata syntax/dependency selection reviewed; direct Rowan loading is not executed",
+    "No throughput or Linux ARM64 qualification in this run"
+  ],
+  "runner": "scripts/qualify-connect-create-user.py",
+  "passed": true
+}
