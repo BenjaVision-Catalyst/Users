@@ -19,7 +19,7 @@ the GT/GemStone-first development order.
 | Package | Responsibility |
 | --- | --- |
 | `BaselineOfCatalystUsers` | Metacello dependency and platform selections. |
-| `BVC-Users-Core` | Portable Users model, starting with `CUUser`. |
+| `BVC-Users-Core` | Portable `CUUser` model and the `CUUsers` API. |
 | `BVC-Users-Runtime` | `CUUsersService`, its narrow `CUUsersCapability`, and the abstract `CUUsersWorkUnit` base. |
 | `BVC-Users-Tests` | Portable executable examples and test-only capability-binding probes. |
 
@@ -38,6 +38,22 @@ or authentication. The old DevKit `BVCUsers` plugin is not its superclass.
 descriptions, persistence and real domain operations will be added under these ownership rules. No empty GT/GemStone adapter packages
 are introduced before there is actual platform-specific behavior to put in them.
 Production currently has no Connect, Groups, UI, Swift, Unreal or test dependency.
+
+## Temporary Users API
+
+`CUUsers` is the class-side entry point for user data. `CUUsers allUsers` lazily
+creates an `OrderedCollection` held by the `AllUsers` class variable.
+`CUUsers addUser: aUser` stores and returns the user. Repeated access returns the
+same collection; package loading does not reset it.
+
+```smalltalk
+CUUsers addUser: CUUser new.
+CUUsers allUsers.
+```
+
+This shared collection is the temporary store until the tenant model supplies
+ownership and storage. In GemStone, callers own the transaction and commit;
+the API does not begin or commit transactions itself.
 
 ## Metacello
 
@@ -107,5 +123,6 @@ stand in for rollback or multi-Gem proof.
 The next design task is the concrete GemStone representation: durable roots,
 aggregate ownership, uniqueness/index structures, concurrent creation/update,
 and transaction/result-publication boundaries, derived from those documented
-invariants. This loader increment makes no choice of a global dictionary, tenant
-partition or general storage adapter and adds no temporary account store.
+invariants. Until that tenant model is implemented, `CUUsers` uses the temporary
+shared `AllUsers` collection described above. Tenant partitioning, indexes and a
+general storage adapter remain unimplemented.

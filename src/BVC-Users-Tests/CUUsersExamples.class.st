@@ -33,7 +33,7 @@ CUUsersExamples >> testProductionAndTestLoadGroupsAreSeparate [
  self assert: (version packageNamed: 'BVC-Users-Runtime') requires asArray equals: #('BVC-Users-Core' 'CatalystRuntime').
  coreClasses := (((MCPackage named: 'BVC-Users-Core') snapshot definitions select: [:definition | definition isClassDefinition]) collect: [:definition | definition className asString]) asArray sorted.
  runtimeClasses := (((MCPackage named: 'BVC-Users-Runtime') snapshot definitions select: [:definition | definition isClassDefinition]) collect: [:definition | definition className asString]) asArray sorted.
- self assert: coreClasses equals: #('CUUser').
+ self assert: coreClasses equals: #('CUUser' 'CUUsers').
  self assert: runtimeClasses equals: #('CUUsersCapability' 'CUUsersService' 'CUUsersWorkUnit').
  ^ version
 ]
@@ -77,6 +77,23 @@ CUUsersExamples >> testUnrelatedWorkCannotAcquireUsersCapability [
  failure := worker workerHandle failedWorkUnitExecutions asArray first.
  self assert: failure errorClassName asString equals: 'CRCapabilityDeniedException'.
  work]
+]
+
+{ #category : 'tests - api' }
+CUUsersExamples >> testUsersApiRetainsUsers [
+ <gtExample>
+ <return: #CUUser>
+ | users user originalUsers |
+ users := CUUsers allUsers.
+ originalUsers := users copy.
+ user := CUUser new.
+ [self assert: (CUUsers addUser: user) == user.
+  self assert: CUUsers allUsers == users.
+  self assert: (CUUsers allUsers includes: user).
+  self assert: users size equals: originalUsers size + 1]
+ ensure: [users remove: user ifAbsent: []].
+ self assert: users equals: originalUsers.
+ ^ user
 ]
 
 { #category : 'tests' }
