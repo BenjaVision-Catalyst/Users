@@ -1,0 +1,12 @@
+RwLoadSpecificationV2 {
+ #specName : 'CatalystUsersTests',
+ #projectName : 'CatalystUsers',
+ #gitUrl : 'https://github.com/BenjaVision-Catalyst/catalyst-users.git',
+ #revision : 'main',
+ #projectSpecFile : 'rowan/project.ston',
+ #componentNames : [ 'Tests' ],
+ #platformProperties : {
+  'gemstone' : { 'allusers' : { #defaultSymbolDictName : 'Globals' } }
+ },
+ #comment : 'Catalyst Users with optional Runtime-bound contracts; requires SUnit'
+}

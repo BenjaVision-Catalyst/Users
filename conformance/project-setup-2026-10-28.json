@@ -1,0 +1,66 @@
+{
+  "date": "2026-10-28",
+  "scope": "Users project loaders and Runtime service foundation; no account storage or authentication",
+  "gt": {
+    "examplesPassed": 6,
+    "sunitPassed": 6,
+    "failures": 0,
+    "errors": 0,
+    "sourceSnapshotsMatch": true
+  },
+  "gemstone": {
+    "baselineDefaultPackages": [
+      "Catalyst-Users-Runtime"
+    ],
+    "sourceDefinitions": [
+      [
+        "BaselineOfCatalystUsers",
+        4
+      ],
+      [
+        "Catalyst-Users-Runtime",
+        8
+      ],
+      [
+        "Catalyst-Users-Tests",
+        17
+      ]
+    ],
+    "platform": "CRGemStonePlatform",
+    "contracts": [
+      "testNamedServiceExecutesUsersWork",
+      "testProductionAndTestLoadGroupsAreSeparate",
+      "testStoppedServiceCannotExecuteWork",
+      "testUnavailableNameDoesNotFallBack",
+      "testUnrelatedWorkCannotAcquireUsersCapability",
+      "testUsersCapabilityIsNotServiceControlAuthority"
+    ],
+    "stone": "bvc_foundation_portable",
+    "passed": 6,
+    "rowanMetadataFiles": 7,
+    "rowanInstalled": false,
+    "directRowanLoadQualified": false,
+    "loadMechanism": "Native Tonel/Gofer with installed Runtime prerequisites"
+  },
+  "dependencies": {
+    "CatalystRuntime": "9e9149cb0e92c985c38bc950ff3abac27ac36bc5",
+    "CatalystFoundation": "139460b38439f097983aee94e8a898b8da244bdc"
+  },
+  "rowan": {
+    "metadataFiles": 7,
+    "syntaxAndReferencesValidatedInGT": true,
+    "directLoadQualified": false,
+    "upstreamReference": "https://github.com/GemTalk/Rowan/tree/71117bb6bc8a20c29980dff2dca38a221ff915c6",
+    "specificationClasses": [
+      "RwProjectSpecificationV3",
+      "RwSimpleProjectLoadComponentV2",
+      "RwLoadSpecificationV2"
+    ]
+  },
+  "limits": [
+    "Metacello dependency groups validated; fresh end-to-end dependency installation not qualified.",
+    "Native packages loaded with installed Runtime prerequisites through Tonel/Gofer.",
+    "Direct Rowan execution requires a Rowan-enabled environment.",
+    "No persistent Users roots, indexes, business mutations or credentials were created."
+  ]
+}

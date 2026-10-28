@@ -1,0 +1,62 @@
+expectvalue true
+run
+| source version |
+source := System gemEnvironmentVariable: 'BVC_USERS_SOURCE'.
+version := System gemEnvironmentVariable: 'BVC_FOUNDATION_SOURCE_VERSION'.
+(source isNil or: [version isNil]) ifTrue: [self error: 'BVC_USERS_SOURCE and numeric BVC_FOUNDATION_SOURCE_VERSION are required'].
+version asInteger.
+#(CRWorkerService CRServiceBoundCapability CRWorkUnit CRFinalizedResultTestWorker TestCase TonelRepository BaselineOf) do: [:name |
+ (Smalltalk includesKey: name) ifFalse: [self error: 'Missing installed prerequisite: ', name asString]].
+GsDeployer deploy: [| repository |
+ repository := TonelRepository new directory: (MetacelloPlatform current fileHandleOn: source).
+ #('BaselineOfCatalystUsers' 'Catalyst-Users-Runtime' 'Catalyst-Users-Tests') do: [:name |
+  Gofer new repository: repository; version: name, '-bvc.', version; load]].
+true
+%
+commit
+expectvalue true
+run
+| selectors source directory proofs metadata parse file report version |
+System abortTransaction. System transactionMode: #manualBegin.
+selectors := (CUUsersExamples selectors select: [:selector | selector asString beginsWith: 'test']) asArray sort.
+selectors do: [:selector | CUUsersExamples new perform: selector].
+source := System gemEnvironmentVariable: 'BVC_USERS_SOURCE'.
+directory := MetacelloPlatform current fileHandleOn: source. proofs := OrderedCollection new.
+#('BaselineOfCatalystUsers' 'Catalyst-Users-Runtime' 'Catalyst-Users-Tests') do: [:name | | live expected actual |
+ live := (MCPackage named: name) snapshot.
+ expected := (TonelMCReader on: directory fileName: name) snapshot definitions reject: [:definition | definition isOrganizationDefinition].
+ actual := live definitions reject: [:definition | definition isOrganizationDefinition].
+ (expected size = actual size and: [expected allSatisfy: [:definition | actual includes: definition]]) ifFalse: [self error: 'Native source mismatch: ', name].
+ proofs add: {name. expected size}].
+parse := [:path | | input text |
+ input := GsFile openReadOnServer: source, '/../', path.
+ [text := input contents] ensure: [input close].
+ "Rowan is optional; the installed older STON reader can parse the trusted map body."
+ STON fromString: (text copyFrom: (text indexOf: ${) to: text size)].
+metadata := Dictionary new.
+#('rowan/project.ston' 'rowan/components/Runtime.ston' 'rowan/components/Tests.ston' 'rowan/projects/CatalystRuntime.ston' 'rowan/projects/CatalystRuntimeTests.ston' 'rowan/specs/CatalystUsers.ston' 'rowan/specs/CatalystUsersTests.ston') do: [:path |
+ metadata at: path put: (parse value: path)].
+((metadata at: 'rowan/project.ston') at: #packagesPath) = 'src' ifFalse: [self error: 'Rowan source path differs'].
+((metadata at: 'rowan/components/Runtime.ston') at: #packageNames) = #('Catalyst-Users-Runtime') ifFalse: [self error: 'Rowan production package selection differs'].
+((metadata at: 'rowan/components/Tests.ston') at: #packageNames) = #('Catalyst-Users-Runtime' 'Catalyst-Users-Tests') ifFalse: [self error: 'Rowan test package selection differs'].
+#('Runtime' 'Tests') do: [:component | | definition |
+ definition := metadata at: 'rowan/components/', component, '.ston'.
+ (definition at: #projectNames) do: [:dependency |
+  (metadata includesKey: 'rowan/projects/', dependency, '.ston') ifFalse: [self error: 'Missing Rowan project dependency']]].
+version := BaselineOfCatalystUsers new project version.
+report := Dictionary new
+ at: 'stone' put: (System gemEnvironmentVariable: 'STONE');
+ at: 'platform' put: CRPlatform current class name asString;
+ at: 'contracts' put: selectors;
+ at: 'passed' put: selectors size;
+ at: 'sourceDefinitions' put: proofs asArray;
+ at: 'baselineDefaultPackages' put: ((version packagesForSpecNamed: 'default') collect: [:spec | spec name]) asArray;
+ at: 'rowanMetadataFiles' put: metadata size;
+ at: 'rowanInstalled' put: (Smalltalk includesKey: #Rowan);
+ at: 'directRowanLoadQualified' put: false;
+ at: 'loadMechanism' put: 'Native Tonel/Gofer with installed Runtime prerequisites';
+ yourself.
+file := GsFile openWriteOnServer: (System gemEnvironmentVariable: 'BVC_USERS_REPORT').
+[file nextPutAll: (STON toJsonString: report)] ensure: [file close].
+true
+%

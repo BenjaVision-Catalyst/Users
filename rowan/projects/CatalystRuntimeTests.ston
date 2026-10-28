@@ -1,0 +1,12 @@
+RwLoadSpecificationV2 {
+ #specName : 'CatalystRuntimeTests',
+ #projectName : 'CatalystRuntime',
+ #gitUrl : 'https://github.com/BenjaVisionPro/CatalystRuntime.git',
+ #revision : 'main',
+ #projectSpecFile : 'rowan/project.ston',
+ #componentNames : [ 'Tests' ],
+ #platformProperties : {
+  'gemstone' : { 'allusers' : { #defaultSymbolDictName : 'Globals' } }
+ },
+ #comment : 'Runtime and optional SUnit/common execution fixtures for Users contracts'
+}
