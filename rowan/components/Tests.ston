@@ -1,7 +1,7 @@
 RwSimpleProjectLoadComponentV2 {
  #name : 'Tests',
  #projectNames : [ 'CatalystRuntimeTests' ],
- #componentNames : [],
+ #componentNames : [ 'Core' ],
  #packageNames : [ 'Catalyst-Users-Runtime', 'Catalyst-Users-Tests' ],
  #comment : 'Optional portable contracts; selects Runtime test support instead of its production-only load specification'
 }

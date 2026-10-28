@@ -1,0 +1,7 @@
+RwSimpleProjectLoadComponentV2 {
+ #name : 'Core',
+ #projectNames : [],
+ #componentNames : [],
+ #packageNames : [ 'BVC-Users-Core' ],
+ #comment : 'Portable Users domain model'
+}

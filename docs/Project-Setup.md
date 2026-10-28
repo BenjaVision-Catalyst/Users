@@ -19,10 +19,11 @@ the GT/GemStone-first development order.
 | Package | Responsibility |
 | --- | --- |
 | `BaselineOfCatalystUsers` | Metacello dependency and platform selections. |
+| `BVC-Users-Core` | Portable Users model, starting with `CUUser`. |
 | `Catalyst-Users-Runtime` | `CUUsersService`, its narrow `CUUsersCapability`, and the abstract `CUUsersWorkUnit` base. |
 | `Catalyst-Users-Tests` | Portable executable examples and test-only capability-binding probes. |
 
-Production defaults load only the Runtime package. Tests are opt-in. Runtime's
+Production defaults load Core and Runtime. The `core` group loads only the model. Tests are opt-in. Runtime's
 `runtime-core` group selects its Pharo or GemStone backend. The Users baseline
 preserves an already registered Runtime repository rather than changing its
 checkout. Circular class references are loaded atomically.
@@ -33,8 +34,8 @@ capabilities. Unrelated WorkUnits cannot acquire Users authority. The current
 capability has no account operations yet; the project setup is not registration
 or authentication. The old DevKit `BVCUsers` plugin is not its superclass.
 
-Domain records, Magritte descriptions, persistence and real domain operations
-will be added under these ownership rules. No empty GT/GemStone adapter packages
+`CUUser` starts as an Object subclass with no fields. Domain records, Magritte
+descriptions, persistence and real domain operations will be added under these ownership rules. No empty GT/GemStone adapter packages
 are introduced before there is actual platform-specific behavior to put in them.
 Production currently has no Connect, Groups, UI, Swift, Unreal or test dependency.
 
@@ -56,7 +57,8 @@ refusals without starting network listeners or creating user accounts.
 
 ## Rowan
 
-`rowan/specs/CatalystUsers.ston` selects the production `Runtime` component.
+`rowan/specs/CatalystUsersCore.ston` selects the independent `Core` component.
+`rowan/specs/CatalystUsers.ston` selects production `Runtime`, including Core.
 `rowan/specs/CatalystUsersTests.ston` selects `Tests`, including its Runtime fixture
 dependency. In an appropriately provisioned Rowan image:
 
@@ -78,7 +80,7 @@ Native package loading and the same service contracts are qualified separately
 through the installed Tonel/Gofer loader.
 
 For the provisioned bvc development stone, `scripts/qualify-gemstone.topaz` loads
-the three Users packages, runs their contracts outside a repository transaction,
+the four Users packages, runs their contracts outside a repository transaction,
 checks the baseline groups and Rowan references, and compares every exported
 definition with the running stone. Supply `BVC_USERS_SOURCE` as an absolute `src`
 directory, numeric `BVC_FOUNDATION_SOURCE_VERSION` for the installed Tonel port,

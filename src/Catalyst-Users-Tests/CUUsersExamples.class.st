@@ -20,16 +20,17 @@ CUUsersExamples >> testNamedServiceExecutesUsersWork [
  work]
 ]
 
-{ #category : 'tests' }
+{ #category : 'tests - loading' }
 CUUsersExamples >> testProductionAndTestLoadGroupsAreSeparate [
  <gtExample>
  <return: #MetacelloVersion>
  | version |
  version := BaselineOfCatalystUsers new project version.
- self assert: ((version packagesForSpecNamed: 'default') collect: #name) asArray equals: #('Catalyst-Users-Runtime').
- self assert: ((version packagesForSpecNamed: 'runtime') collect: #name) asArray equals: #('Catalyst-Users-Runtime').
- self assert: ((version packagesForSpecNamed: 'tests') collect: #name) asArray equals: #('Catalyst-Users-Runtime' 'Catalyst-Users-Tests').
- self assert: (version packageNamed: 'Catalyst-Users-Runtime') requires asArray equals: #('CatalystRuntime').
+ self assert: ((version packagesForSpecNamed: 'default') collect: #name) asArray sorted equals: #('BVC-Users-Core' 'Catalyst-Users-Runtime').
+ self assert: ((version packagesForSpecNamed: 'runtime') collect: #name) asArray sorted equals: #('BVC-Users-Core' 'Catalyst-Users-Runtime').
+ self assert: ((version packagesForSpecNamed: 'tests') collect: #name) asArray sorted equals: #('BVC-Users-Core' 'Catalyst-Users-Runtime' 'Catalyst-Users-Tests').
+ self assert: ((version packagesForSpecNamed: 'core') collect: #name) asArray sorted equals: #('BVC-Users-Core').
+ self assert: (version packageNamed: 'Catalyst-Users-Runtime') requires asArray equals: #('BVC-Users-Core' 'CatalystRuntime').
  ^ version
 ]
 

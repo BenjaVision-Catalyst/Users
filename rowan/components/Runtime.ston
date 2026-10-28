@@ -1,7 +1,7 @@
 RwSimpleProjectLoadComponentV2 {
  #name : 'Runtime',
  #projectNames : [ 'CatalystRuntime' ],
- #componentNames : [],
+ #componentNames : [ 'Core' ],
  #packageNames : [ 'Catalyst-Users-Runtime' ],
  #comment : 'Production Users service, capability and WorkUnit base; no GT UI or test packages'
 }

@@ -1,0 +1,12 @@
+RwLoadSpecificationV2 {
+ #specName : 'CatalystUsersCore',
+ #projectName : 'CatalystUsers',
+ #gitUrl : 'https://github.com/BenjaVision-Catalyst/catalyst-users.git',
+ #revision : 'main',
+ #projectSpecFile : 'rowan/project.ston',
+ #componentNames : [ 'Core' ],
+ #platformProperties : {
+  'gemstone' : { 'allusers' : { #defaultSymbolDictName : 'Globals' } }
+ },
+ #comment : 'Catalyst Users portable domain model'
+}

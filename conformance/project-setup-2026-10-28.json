@@ -1,6 +1,6 @@
 {
   "date": "2026-10-28",
-  "scope": "Users project loaders and Runtime service foundation; no account storage or authentication",
+  "scope": "Users Core model and Runtime service loaders; CUUser starts without fields",
   "gt": {
     "examplesPassed": 6,
     "sunitPassed": 6,
@@ -10,12 +10,17 @@
   },
   "gemstone": {
     "baselineDefaultPackages": [
-      "Catalyst-Users-Runtime"
+      "Catalyst-Users-Runtime",
+      "BVC-Users-Core"
     ],
     "sourceDefinitions": [
       [
         "BaselineOfCatalystUsers",
         4
+      ],
+      [
+        "BVC-Users-Core",
+        1
       ],
       [
         "Catalyst-Users-Runtime",
@@ -37,7 +42,7 @@
     ],
     "stone": "bvc_foundation_portable",
     "passed": 6,
-    "rowanMetadataFiles": 7,
+    "rowanMetadataFiles": 9,
     "rowanInstalled": false,
     "directRowanLoadQualified": false,
     "loadMechanism": "Native Tonel/Gofer with installed Runtime prerequisites"
@@ -47,7 +52,7 @@
     "CatalystFoundation": "139460b38439f097983aee94e8a898b8da244bdc"
   },
   "rowan": {
-    "metadataFiles": 7,
+    "metadataFiles": 9,
     "syntaxAndReferencesValidatedInGT": true,
     "directLoadQualified": false,
     "upstreamReference": "https://github.com/GemTalk/Rowan/tree/71117bb6bc8a20c29980dff2dca38a221ff915c6",
