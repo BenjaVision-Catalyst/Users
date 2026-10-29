@@ -828,5 +828,9 @@
     "rustc": "rustc 1.96.1 (31fca3adb 2026-06-26)"
   },
   "nativeLibrarySHA256": "63674c67f8c2b482669aa19ca2bdc494ec4879d2ca72b89a8a72aaaecb05da91",
-  "evidence": "https://github.com/BenjaVisionPro/catalyst-workspace/blob/main/Connect/evidence/user-server-push-fanout-2026-10-29.json"
+  "evidence": "https://github.com/BenjaVisionPro/catalyst-workspace/blob/main/Connect/evidence/user-server-push-fanout-2026-10-29.json",
+  "followUpInvestigation": {
+    "report": "https://github.com/BenjaVisionPro/catalyst-workspace/blob/main/Connect/evidence/user-server-push-cost-investigation-2026-10-29.json",
+    "finding": "Healthy observers received between six and all 384 burst revisions; aggregate delivery and final convergence alone do not establish fairness."
+  }
 }

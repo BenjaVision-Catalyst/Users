@@ -263,3 +263,10 @@ rates, latency distributions, coalescing, reconnects, RSS, source verification a
 preserved unsuccessful attempts. This is a local Swift/macOS curve under controlled
 disconnects, with the current single-listener ceiling of 64 connections. It is not
 a maximum-throughput or production-SLO qualification.
+
+Follow-up per-client analysis found uneven service: some healthy observers
+received all 384 burst revisions while others received six. Final convergence
+therefore does not establish bounded freshness during continuous writes. The
+[cost investigation](https://github.com/BenjaVisionPro/catalyst-workspace/blob/main/Connect/evidence/user-server-push-cost-investigation-2026-10-29.json)
+records repeated description/encoding work, the cursor/budget problem, isolated
+codec profiles and the proposed fix. No optimization is implemented by that report.
