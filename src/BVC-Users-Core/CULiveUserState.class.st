@@ -13,7 +13,7 @@ Class {
 
 { #category : 'live users' }
 CULiveUserState class >> from: user outcome: status [
- ^ self new name: user name; isSuperUser: user isSuperUser; userIdentifier: user userIdentifier; revision: user revision; outcome: status; yourself
+ ^ self new name: user name copy; isSuperUser: user isSuperUser; userIdentifier: user userIdentifier copy; revision: user revision; outcome: status copy; yourself
 ]
 
 { #category : 'live users' }

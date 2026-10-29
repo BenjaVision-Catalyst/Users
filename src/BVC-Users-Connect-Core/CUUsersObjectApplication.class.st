@@ -36,6 +36,7 @@ CUUsersObjectApplication >> bindingsFor: configuration [
  #(7 8 9) do: [:code | (configuration allowedOperations includes: code) ifTrue: [
   result add: ((code = 8 ifTrue: [CUUsersFeedBinding] ifFalse: [CUUsersStateBinding]) new operation: code request: CUUserChange new result: (CULiveUserState outcome: '')
    work: ({CUSubscribeUserWork. CUReceiveUserChangesWork. CUUnsubscribeUserWork} at: code - 6) service: (configuration bindingNamed: #users) serviceIdentifier peer: creation localIdentity)]].
+ result do: [:each | each supportsSubscription ifTrue: [each publicationCacheCapacity: configuration publicationCacheCapacity]].
  ^ result asArray
 ]
 

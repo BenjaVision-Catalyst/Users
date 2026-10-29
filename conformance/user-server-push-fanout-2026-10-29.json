@@ -832,5 +832,6 @@
   "followUpInvestigation": {
     "report": "https://github.com/BenjaVisionPro/catalyst-workspace/blob/main/Connect/evidence/user-server-push-cost-investigation-2026-10-29.json",
     "finding": "Healthy observers received between six and all 384 burst revisions; aggregate delivery and final convergence alone do not establish fairness."
-  }
+  },
+  "followUpImplementation": "https://github.com/BenjaVisionPro/catalyst-workspace/blob/main/Connect/evidence/user-server-push-scaling-2026-10-29.json"
 }

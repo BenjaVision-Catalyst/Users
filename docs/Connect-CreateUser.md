@@ -270,3 +270,32 @@ therefore does not establish bounded freshness during continuous writes. The
 [cost investigation](https://github.com/BenjaVisionPro/catalyst-workspace/blob/main/Connect/evidence/user-server-push-cost-investigation-2026-10-29.json)
 records repeated description/encoding work, the cursor/budget problem, isolated
 codec profiles and the proposed fix. No optimization is implemented by that report.
+
+The subsequent scaling change shares a validated encoded publication across feeds
+for each finalized snapshot, schema, authorized view and authority epoch. User
+snapshots detach text from stored Users; acknowledgement uses copied identity and
+revision metadata. Existing coalescing, commit completion and lifecycle checks
+remain in charge. The optional Connect adapter owns the bounded cache; Users Core
+and Runtime do not acquire a transport dependency.
+
+Connect now resumes with the next unserved observer when a drive budget ends and
+uses the existing Runtime progress schedule to drain accepted work. An entirely
+Busy pass waits for the normal retry. Configuration exposes `driveCallLimit`
+(128), `driveByteLimit` (65536), `driveTimeLimitMillis` (5) and
+`publicationCacheCapacity` (128) through the normal Magritte codec and reconciliation.
+
+With the same debug-client serial workload at 60 observers, delivered-state burst
+p99 fell from 2609 to 92 ms for GT and from 3909 to 130 ms for GemStone. All 58
+healthy observers received all 384 burst revisions on both authorities. The
+isolated 60-recipient publication-cost example retained full validation and reduced
+3000 encodes to 50, measuring approximately 49x lower time in GT and 48x in GemStone.
+These local results do not establish a higher connection ceiling or a hard freshness
+SLO. GemStone still exhibited occasional multi-second writer/server pauses,
+including with a single observer. Per-client delivery gaps and paced-writer
+admission lag are retained in the
+[scaling evidence](https://github.com/BenjaVisionPro/catalyst-workspace/blob/main/Connect/evidence/user-server-push-scaling-2026-10-29.json).
+
+`qualify-user-fanout.py --build-configuration release --write-interval-millis 100`
+uses optimized clients and a paced ten-update/second admission schedule. The
+writer records its scheduled offer time and actual submission time, so a late
+reply cannot silently turn that run into a claim of sustained offered throughput.

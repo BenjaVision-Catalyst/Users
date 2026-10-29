@@ -7,7 +7,8 @@ Class {
 	#instVars : [
 		'feed',
 		'schema',
-		'ticket'
+		'ticket',
+		'publicationCache'
 	],
 	#category : 'BVC-Users-Connect-Core',
 	#package : 'BVC-Users-Connect-Core'
@@ -15,7 +16,12 @@ Class {
 
 { #category : 'push updates' }
 CUUsersFeedResponse >> attach: source schema: codec [
- feed := source. schema := codec. ticket := feed beginPush.
+ ^ self attach: source schema: codec cache: (CCObjectPublicationCache new schema: codec capacity: 128)
+]
+
+{ #category : 'push updates' }
+CUUsersFeedResponse >> attach: source schema: codec cache: cache [
+ feed := source. schema := codec. publicationCache := cache. ticket := feed beginPush.
  self complete: (schema encode: (CULiveUserState outcome: 'subscribed')) status: 0
 ]
 
@@ -49,15 +55,15 @@ CUUsersFeedResponse >> nextPublication [
  | incoming |
  self isActive ifFalse: [^ nil].
  incoming := feed peekFor: ticket.
- ^ incoming ifNil: [nil] ifNotNil: [{schema encode: incoming. incoming}]
+ ^ incoming ifNil: [nil] ifNotNil: [publicationCache publicationFor: incoming identity: incoming userIdentifier revision: incoming revision epoch: scope epoch]
 ]
 
 { #category : 'push updates' }
 CUUsersFeedResponse >> published: publication [
- feed ifNotNil: [feed acknowledge: publication second userIdentifier revision: publication second revision]
+ feed ifNotNil: [feed acknowledge: publication identifier revision: publication revision]
 ]
 
 { #category : 'push updates' }
 CUUsersFeedResponse >> releaseFeed [
- feed ifNotNil: [feed endPush: ticket]. feed := nil. schema := nil. ticket := nil
+ feed ifNotNil: [feed endPush: ticket]. feed := nil. schema := nil. ticket := nil. publicationCache := nil
 ]

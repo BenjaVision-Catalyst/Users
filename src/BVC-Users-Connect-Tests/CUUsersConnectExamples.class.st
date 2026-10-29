@@ -57,6 +57,31 @@ CUUsersConnectExamples >> testClientBeforeReadinessDoesNotCreateAUser [
 ]
 
 { #category : 'tests' }
+CUUsersConnectExamples >> testCommittedPublicationIsSharedAndRetainsFrozenAcknowledgement [
+ <gtExample>
+ <return: #CCObjectPublicationCache>
+ | cache schema state epoch publication old newer |
+ schema := CCObjectStateSchema forObject: (CULiveUserState outcome: '').
+ cache := CCObjectPublicationCache new schema: schema capacity: 2.
+ epoch := Object new.
+ state := CULiveUserState new name: 'shared' copy; userIdentifier: 'id'; revision: 2; outcome: 'current'; yourself.
+ publication := cache publicationFor: state identity: state userIdentifier revision: state revision epoch: epoch.
+ 60 timesRepeat: [self assert: (cache publicationFor: state identity: 'id' revision: 2 epoch: epoch) == publication].
+ self assert: (cache statistics at: #encodings) equals: 1.
+ self assert: publication bytes equals: (schema encode: state).
+ old := publication bytes. old at: 1 put: 0. self deny: old = publication bytes.
+ state name at: 1 put: $X. state revision: 3.
+ self assert: (schema decode: publication bytes) name equals: 'shared'. self assert: publication revision equals: 2.
+ newer := cache publicationFor: state identity: 'id' revision: 3 epoch: epoch.
+ self assert: (schema decode: newer bytes) name equals: 'Xhared'.
+ self assert: (cache statistics at: #entries) equals: 1.
+ self deny: (cache publicationFor: state identity: 'id' revision: 3 epoch: Object new) == newer.
+ self assert: (cache statistics at: #encodings) equals: 3.
+ self assert: (cache statistics at: #entries) equals: 2.
+ ^ cache
+]
+
+{ #category : 'tests' }
 CUUsersConnectExamples >> testConfiguredBindingRetainsUsersTransactionAndCapabilityContracts [
  <gtExample>
  <return: #CCObjectBinding>
@@ -182,6 +207,25 @@ CUUsersConnectExamples >> testPlatformQualificationRetainsCommitContract [
  completion := CCObjectResultCompletion new binding: binding response: CCObjectDeferredResponse new probe: false.
  self assert: completion afterCommit. self assert: completion afterFinalization.
  ^ binding
+]
+
+{ #category : 'tests' }
+CUUsersConnectExamples >> testPublicationCachePreservesValidationAndBounds [
+ <gtExample>
+ <return: #CCObjectPublicationCache>
+ | cache schema state epoch invalid other |
+ schema := CCObjectStateSchema forObject: (CULiveUserState outcome: '').
+ cache := CCObjectPublicationCache new schema: schema capacity: 1.
+ epoch := Object new.
+ state := CULiveUserState new name: 'valid'; userIdentifier: 'id'; revision: 2; outcome: 'current'; yourself.
+ cache publicationFor: state identity: 'id' revision: 2 epoch: epoch.
+ invalid := CULiveUserState new name: (String new: 1025 withAll: $x); userIdentifier: 'id'; revision: 2; outcome: 'current'; yourself.
+ self should: [cache publicationFor: invalid identity: 'id' revision: 2 epoch: epoch] raise: Error.
+ self assert: (cache statistics at: #encodings) equals: 1.
+ other := CULiveUserState new name: 'other'; userIdentifier: 'other'; revision: 1; outcome: 'current'; yourself.
+ cache publicationFor: other identity: 'other' revision: 1 epoch: epoch.
+ self assert: (cache statistics at: #entries) equals: 1.
+ ^ cache
 ]
 
 { #category : 'push updates' }

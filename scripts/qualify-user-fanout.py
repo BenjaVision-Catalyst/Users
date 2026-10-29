@@ -37,6 +37,19 @@ def burst_evidence(directory):
     healthy = [client for client in clients if not client['slow']]
     latencies = [(event['at'] - offered[(event['user'], event['revision'])]['sentAt'])*1000
                  for client in healthy for event in client['arrivals'] if (event['user'], event['revision']) in offered]
+    per_client = []
+    for client in healthy:
+        arrivals = [event for event in client['arrivals'] if (event['user'], event['revision']) in offered]
+        gaps = []
+        for phase in ['burstA.json', 'burstB.json']:
+            phase_writes = [w for w in writes if w['phase'] == phase]
+            begin, end = phase_writes[0]['sentAt'], phase_writes[-1]['replyAt']
+            for user in {w['user'] for w in phase_writes}:
+                times = [begin] + sorted(event['at'] for event in arrivals if event['user'] == user and begin <= event['at'] <= end) + [end]
+                gaps.extend((b-a)*1000 for a,b in zip(times,times[1:]))
+        per_client.append(dict(index=client['index'], receivedBurstRevisions=len(arrivals),
+            deliveredFraction=len(arrivals)/len(offered), maximumNoDeliveryGapDuringBurstMillis=max(gaps, default=0),
+            deliveredBurstP99Millis=percentile([(event['at']-offered[(event['user'],event['revision'])]['sentAt'])*1000 for event in arrivals], .99)))
     drain = next((client for client in sorted(clients, key=lambda c:c['index']) if client['slow']), None)
     gap, previous = 0, {}
     if drain:
@@ -49,7 +62,8 @@ def burst_evidence(directory):
         phase_writes = [write for write in writes if write['phase'] == phase]
         burst_seconds += phase_writes[-1]['replyAt'] - phase_writes[0]['sentAt']
     reconnected = list(directory.glob('reconnected-*.json'))
-    return dict(burstLatencyMillis={key:percentile(latencies,q) for key,q in [('p50',.5),('p95',.95),('p99',.99),('max',1)]},
+    return dict(perHealthyClient=per_client, minimumHealthyCoverage=min(c['deliveredFraction'] for c in per_client), burstLatencyMillis={key:percentile(latencies,q) for key,q in [('p50',.5),('p95',.95),('p99',.99),('max',1)]},
+        maximumWriterAdmissionLagMillis=max((w['sentAt']-w.get('offeredAt',w['sentAt']))*1000 for w in offered.values()),
         deliveredBurstStates=len(latencies), possibleBurstStates=len(offered)*len(healthy),
         deliveredIntermediateRevisionFraction=len(latencies)/(len(offered)*len(healthy)),
         confirmedBurstWritesPerSecond=len(offered)/burst_seconds,
@@ -64,16 +78,19 @@ def main():
     parser.add_argument('--deployment', required=True)
     parser.add_argument('--authority', choices=['gt', 'gemstone'], required=True)
     parser.add_argument('--clients', nargs='+', type=int, choices=[1, 8, 32, 60], default=[1, 8, 32, 60])
+    parser.add_argument('--build-configuration', choices=['debug', 'release'], default='debug')
+    parser.add_argument('--write-interval-millis', type=float, default=0, help='Paced serial admission; record lag if replies prevent meeting the offered schedule')
     parser.add_argument('--mcp-url', default='http://127.0.0.1:3001/')
     args = parser.parse_args()
     for key, value in vars(args).items():
         if isinstance(value, Path): setattr(args, key, value.resolve())
     if any(count < 1 or count > 60 for count in args.clients): parser.error('client counts must be 1..60 (writer reserves one listener connection)')
+    if not 0 <= args.write_interval_millis <= 1000: parser.error('write interval must be 0..1000 ms')
     output = args.output; output.mkdir(parents=True, exist_ok=False)
     name = 'fanout_users_' + uuid.uuid4().hex[:12]
     env = dict(os.environ, GEMSTONE_STONE_NAME=args.deployment, BVC_USERS_PLATFORM_DIRECTORY=str(output))
     parameters = dict(runtime=name, prefix=name, library=str(args.library), fanout=True, maximumFeeds=64, maximumUsersPerFeed=3, clients=[])
-    report = dict(runtime=name, authority=args.authority, profiles=[], nativeCapacity=64, maximumFeeds=64, maximumUsersPerFeed=3)
+    report = dict(runtime=name, authority=args.authority, profiles=[], nativeCapacity=64, maximumFeeds=64, maximumUsersPerFeed=3, clientBuildConfiguration=args.build_configuration, offeredWriteIntervalMillis=args.write_interval_millis)
     snapshot = output / 'source-snapshot'; snapshot.mkdir()
     sources = dict(controller=Path(__file__), runtimeConfiguration=Path(__file__).with_name('qualify-platform-users.topaz'),
         swiftWorker=args.apple_package / 'Tests/CatalystUsersTests/NativeFanoutUsersTests.swift',
@@ -140,7 +157,7 @@ def main():
 
     before = json.loads(run([args.bvc, 'runtime', 'status', 'connect-dev'], 'development-before'))
     originals = {(w['process']['pid'], w['process']['token']) for w in before['workers'] if w['process']['live']}
-    test_bundle = args.apple_package / '.build/arm64-apple-macosx/debug/CatalystConnectSwiftPackageTests.xctest'
+    test_bundle = args.apple_package / ('.build/arm64-apple-macosx/' + args.build_configuration + '/CatalystConnectSwiftPackageTests.xctest')
     if not test_bundle.exists(): raise FileNotFoundError(test_bundle)
     for identity in ['server', 'bulk']:
         run([args.library.parent / 'identity', output / 'identities' / identity], 'identity-' + identity)
@@ -195,7 +212,7 @@ Smalltalk globals at: {quote(owner)} asSymbol put: run. run snapshot''')
             shards = math.ceil(count / 10); processes = []
             started = time.monotonic(); memory_start = len(memory)
             native_start = latest_native()['sample']
-            launch(directory, 'writer'); wait_files([directory / 'seed.json'])
+            launch(directory, 'writer', writeIntervalMillis=args.write_interval_millis); wait_files([directory / 'seed.json'])
             for shard in range(shards): launch(directory, 'observers', shard=shard, start=shard*10, count=min(10, count-shard*10), total=count, slow=slow)
             wait_files([directory / f'ready-{s}.json' for s in range(shards)])
             marker(directory, 'start'); wait_files([directory / f'baseline-{s}.json' for s in range(shards)])
@@ -232,7 +249,8 @@ Smalltalk globals at: {quote(owner)} asSymbol put: run. run snapshot''')
                 assert all(feed['pending'] <= feed['watched'] <= 3 for feed in sample['feeds'])
                 assert sample['publishers'] <= 64 and len(sample['feeds']) <= 64
                 assert sample['native']['1'] <= 128 and sample['native']['8'] <= 128*4080
-                assert sample['connectStatistics']['callPeak'] <= 32 and sample['connectStatistics']['copyPeak'] <= 4096
+                limits = sample.get('driveLimits', dict(calls=32, bytes=4096))
+                assert sample['connectStatistics']['callPeak'] <= limits['calls'] and sample['connectStatistics']['copyPeak'] <= limits['bytes']
             profile = dict(clients=count, slowConsumers=slow, sharedUsers=3, updates=writer['count'], elapsedSeconds=time.monotonic()-started,
                 deliveredHealthySamples=len(latency), latencyFromSubmissionMillis={key:percentile(latency, q) for key,q in [('p50',.5),('p95',.95),('p99',.99),('max',1)]},
                 writerRTTMillis={key:percentile([(w['replyAt']-w['sentAt'])*1000 for w in writer['writes']],q) for key,q in [('p50',.5),('p95',.95),('p99',.99)]},

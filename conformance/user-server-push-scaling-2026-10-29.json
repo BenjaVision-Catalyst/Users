@@ -1,0 +1,96 @@
+{
+  "date": "2026-10-29",
+  "scope": "Committed-publication sharing, fair bounded push delivery and existing Runtime progress continuation; unchanged ABI-2 wire payloads and native library.",
+  "configurationDefaults": {
+    "driveCallLimit": 128,
+    "driveByteLimit": 65536,
+    "driveTimeLimitMillis": 5,
+    "publicationCacheCapacity": 128,
+    "notes": "Time is a cooperative deadline, not preemption; native Busy staging copies are bounded by calls/candidates/time, while byte accounting counts accepted bodies."
+  },
+  "publicationCost": {
+    "gt": {
+      "byteEquivalent": true,
+      "originalMillis": [
+        8254,
+        7254,
+        7792
+      ],
+      "sharedMillis": [
+        159,
+        152,
+        168
+      ],
+      "sharedEncodingsPerTrial": 50,
+      "recipients": 60,
+      "originalEncodingsPerTrial": 3000,
+      "revisions": 50,
+      "medianTimeReductionFactor": 49.0062893081761
+    },
+    "gemstone": {
+      "originalMillis": [
+        707,
+        717,
+        741
+      ],
+      "sharedMillis": [
+        15,
+        14,
+        15
+      ],
+      "byteEquivalent": true,
+      "recipients": 60,
+      "revisions": 50,
+      "originalEncodingsPerTrial": 3000,
+      "sharedEncodingsPerTrial": 50,
+      "medianTimeReductionFactor": 47.8
+    }
+  },
+  "comparison": {
+    "gt": {
+      "previousBurstP99Millis": 2608.809000812471,
+      "currentBurstP99Millis": 91.74416679888964,
+      "p99ReductionFactor": 28.435693427040256,
+      "previousMinimumHealthyCoverage": 0.015625,
+      "currentMinimumHealthyCoverage": 1.0,
+      "previousMaximumNoDeliveryGapDuringBurstMillis": 77633.10941681266,
+      "currentMaximumNoDeliveryGapDuringBurstMillis": 223.7248755991459,
+      "currentConfirmedWritesPerSecond": 25.63450432863534
+    },
+    "gemstone": {
+      "previousBurstP99Millis": 3908.8854994624853,
+      "currentBurstP99Millis": 129.55416645854712,
+      "p99ReductionFactor": 30.171823927509074,
+      "previousMinimumHealthyCoverage": 0.015625,
+      "currentMinimumHealthyCoverage": 1.0,
+      "previousMaximumNoDeliveryGapDuringBurstMillis": 26581.505624577403,
+      "currentMaximumNoDeliveryGapDuringBurstMillis": 4143.741499632597,
+      "currentConfirmedWritesPerSecond": 12.072721452585228
+    }
+  },
+  "limitations": [
+    "The serial-writer debug comparison has the same workload shape and client source as the previous qualification, but its offered rate depends on confirmed replies. It is not a fixed-offered-load speedup claim.",
+    "Release paced runs use a requested 100 ms admission schedule and record lateness; a serial writer cannot maintain it through a long reply pause.",
+    "GemStone still shows occasional multi-second writer/server-drive pauses, including at one observer. The fan-out fairness defect is corrected, but a hard maximum freshness/latency guarantee is not established; the pause cause remains unconfirmed.",
+    "Connection ceiling remains 64 and the largest qualification is 60 observers plus a writer. This does not qualify hundreds/thousands of connections.",
+    "The isolated cost example measures encoding/cache work, not whole-server CPU or per-recipient TLS/network cost."
+  ],
+  "portableTests": {
+    "gt": 35,
+    "gemstone": 35
+  },
+  "crossPlatformPush": {
+    "gt": [
+      "swift-macos",
+      "swift-ios",
+      "unreal"
+    ],
+    "gemstone": [
+      "swift-macos",
+      "swift-ios",
+      "unreal"
+    ],
+    "notes": "GT Swift and Unreal used separate disposable fixtures after a project startup failure; see complete evidence."
+  },
+  "evidence": "https://github.com/BenjaVisionPro/catalyst-workspace/blob/main/Connect/evidence/user-server-push-scaling-2026-10-29.json"
+}
