@@ -76,6 +76,50 @@ CUUsersDriveTriggerExamples >> testQueuedExecutionIsDistinguishedFromReadyIo [
 ]
 
 { #category : 'tests' }
+CUUsersDriveTriggerExamples >> testScanCopiesSlotPositionsAndCandidateCharges [
+ <gtExample>
+ <return: #CUUsersDriveTriggerMetrics>
+ | service metrics claim scan |
+ service := self serviceFixture. service instVarNamed: 'cursor' put: 0.
+ claim := CCQuicClaim new identifier: 99; kind: 1; stage: #captured; yourself.
+ (service instVarNamed: 'pending') at: 3 put: claim.
+ metrics := CUUsersDriveTriggerMetrics new configureFrom: CRWorkUnitExecutionMetrics new service: service.
+ metrics recordScanEntry.
+ service instVarNamed: 'cursor' put: 2; instVarNamed: 'candidateBudget' put: 58.
+ metrics recordExecution: self executionFixture.
+ scan := (metrics driveReport at: 'rows') first at: 'claimScan'.
+ self assert: (scan at: 'entryMatched').
+ self assert: (scan at: 'claimVisits') equals: 2.
+ self assert: (scan at: 'cursorBefore') equals: 0. self assert: (scan at: 'cursorAfter') equals: 2.
+ self assert: ((scan at: 'slotsBefore') first at: 'slot') equals: 3.
+ claim stage: #discard.
+ self assert: ((scan at: 'slotsBefore') first at: 'stage') equals: 'captured'.
+ self assert: ((scan at: 'slotsAfter') first at: 'stage') equals: 'captured'.
+ self assert: (STON toJsonString: metrics driveReport) notEmpty.
+ ^ metrics
+]
+
+{ #category : 'tests' }
+CUUsersDriveTriggerExamples >> testScanEntryIsOneShotAndDriveMatched [
+ <gtExample>
+ <return: #CUUsersDriveTriggerMetrics>
+ | service metrics rows |
+ service := self serviceFixture. service instVarNamed: 'cursor' put: 0.
+ metrics := CUUsersDriveTriggerMetrics new configureFrom: CRWorkUnitExecutionMetrics new service: service.
+ metrics recordScanEntry.
+ (service instVarNamed: 'stats') at: #drives put: 2.
+ metrics recordExecution: self executionFixture.
+ self deny: (((metrics driveReport at: 'rows') first at: 'claimScan') at: 'entryMatched').
+ metrics recordScanEntry.
+ metrics recordExecution: self executionFixture.
+ metrics recordExecution: self executionFixture.
+ rows := metrics driveReport at: 'rows'.
+ self assert: ((rows second at: 'claimScan') at: 'entryMatched').
+ self deny: ((rows third at: 'claimScan') at: 'entryMatched').
+ ^ metrics
+]
+
+{ #category : 'tests' }
 CUUsersDriveTriggerExamples >> testTraceCopiesCountersAndDoesNotEnterDurableSamples [
  <gtExample>
  <return: #CUUsersDriveTriggerMetrics>

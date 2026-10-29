@@ -24,14 +24,15 @@ CUUsersDriveTriggerApplicationFixture >> initializeDiagnostics [
 
 { #category : 'qualification' }
 CUUsersDriveTriggerApplicationFixture >> progressUsing: service [
- | worker metrics |
+ | worker metrics result |
  traceService := service.
  driveMetrics ifNil: [
   worker := (service instVarNamed: 'port') instVarNamed: 'worker'.
   metrics := worker workerHandle statistics at: #workUnitExecution.
   driveMetrics := CUUsersDriveTriggerMetrics new configureFrom: metrics service: service.
   worker workerHandle statistics at: #workUnitExecution put: driveMetrics].
- ^ super progressUsing: service
+ result := super progressUsing: service.
+ driveMetrics recordScanEntry. ^ result
 ]
 
 { #category : 'qualification' }
