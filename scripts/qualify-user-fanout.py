@@ -81,6 +81,9 @@ def main():
     parser.add_argument('--build-configuration', choices=['debug', 'release'], default='debug')
     parser.add_argument('--write-interval-millis', type=float, default=0, help='Paced serial admission; record lag if replies prevent meeting the offered schedule')
     parser.add_argument('--observe-workunits', action='store_true', help='GemStone only: copy existing durable execution records in a read-only Gem; preserve retention and transaction boundaries')
+    parser.add_argument('--connect-idle-millis', type=int, help='GemStone qualification: existing Connect idle configuration (default 20, valid 1..1000)')
+    parser.add_argument('--reconcile-interval-millis', type=int, help='GemStone qualification: existing orchestration configuration (default 100)')
+    parser.add_argument('--heartbeat-interval-millis', type=int, help='GemStone qualification: existing orchestration configuration (default 500)')
     parser.add_argument('--mcp-url', default='http://127.0.0.1:3001/')
     args = parser.parse_args()
     for key, value in vars(args).items():
@@ -88,10 +91,17 @@ def main():
     if any(count < 1 or count > 60 for count in args.clients): parser.error('client counts must be 1..60 (writer reserves one listener connection)')
     if not 0 <= args.write_interval_millis <= 1000: parser.error('write interval must be 0..1000 ms')
     if args.observe_workunits and args.authority != 'gemstone': parser.error('durable WorkUnit observation requires GemStone')
+    requested = [args.connect_idle_millis, args.reconcile_interval_millis, args.heartbeat_interval_millis]
+    if any(value is not None for value in requested) and args.authority != 'gemstone': parser.error('cadence overrides require GemStone')
+    cadence = dict(idleMillis=20 if args.connect_idle_millis is None else args.connect_idle_millis,
+                   reconcileIntervalMillis=100 if args.reconcile_interval_millis is None else args.reconcile_interval_millis,
+                   heartbeatIntervalMillis=500 if args.heartbeat_interval_millis is None else args.heartbeat_interval_millis)
+    if not 1 <= cadence['idleMillis'] <= 1000 or any(value <= 0 for value in cadence.values()): parser.error('positive cadence values and Connect idle 1..1000 ms required')
     output = args.output; output.mkdir(parents=True, exist_ok=False)
     name = 'fanout_users_' + uuid.uuid4().hex[:12]
     env = dict(os.environ, GEMSTONE_STONE_NAME=args.deployment, BVC_USERS_PLATFORM_DIRECTORY=str(output))
     parameters = dict(runtime=name, prefix=name, library=str(args.library), fanout=True, maximumFeeds=64, maximumUsersPerFeed=3, clients=[])
+    if args.authority == 'gemstone': parameters['cadenceConfiguration'] = cadence
     report = dict(runtime=name, authority=args.authority, profiles=[], nativeCapacity=64, maximumFeeds=64, maximumUsersPerFeed=3, clientBuildConfiguration=args.build_configuration, offeredWriteIntervalMillis=args.write_interval_millis)
     snapshot = output / 'source-snapshot'; snapshot.mkdir()
     sources = dict(controller=Path(__file__), runtimeConfiguration=Path(__file__).with_name('qualify-platform-users.topaz'),
@@ -199,7 +209,7 @@ deadline := CRPlatform current currentMillis + 1800000.
 ensure: [CRPlatform current writeConnectEvidence: lease snapshot to: {quote(output / 'gt-mcp-gate.json')}]].
 Smalltalk globals at: {quote(owner)} asSymbol put: run. run snapshot''')
             lease = True; wait_json(output / 'lease-active.json')
-            phase('configure')
+            report['configured'] = phase('configure')
             run([args.bvc, 'runtime', 'configure', name, output / 'runtime.ston'], 'configure-runtime'); registered = True
             if args.observe_workunits:
                 evidence = output / 'workunits'; evidence.mkdir()
@@ -276,6 +286,7 @@ Smalltalk globals at: {quote(owner)} asSymbol put: run. run snapshot''')
         if args.authority == 'gemstone':
             parameters['expectedUsers'] = [state for profile in output.glob(name + '_*') for state in wait_json(profile / 'final.json')]
             report['persistence'] = phase('fanoutVerify')
+            if report['persistence']['cadenceConfiguration'] != cadence: raise RuntimeError('Accepted Runtime cadence differs from requested configuration')
         report['workloadPassed'] = True
     except Exception as error:
         report['error'] = repr(error); save(); raise

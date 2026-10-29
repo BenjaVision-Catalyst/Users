@@ -1,0 +1,103 @@
+{
+  "date": "2026-10-29",
+  "evidence": "https://github.com/BenjaVisionPro/catalyst-workspace/blob/main/Connect/evidence/user-runtime-cadence-2026-10-29.md",
+  "candidate": {
+    "idleMillis": 50,
+    "reconcileIntervalMillis": 1000,
+    "heartbeatIntervalMillis": 1000
+  },
+  "productionDefaultsChanged": false,
+  "productionTransactionCodeChanged": false,
+  "cases": [
+    {
+      "name": "baseline-before",
+      "cadence": {
+        "idleMillis": 20,
+        "reconcileIntervalMillis": 100,
+        "heartbeatIntervalMillis": 500
+      },
+      "primaryApplicationCommits": 6660,
+      "primaryControlCommits": 1547,
+      "combinedWorkerCommits": 8207,
+      "deliveredBurstP99Millis": 100.58795846998692,
+      "confirmedBurstWritesPerSecond": 10.025984106627845,
+      "minimumHealthyCoverage": 1.0,
+      "nativeIdleApplicationCommitsPerSecond": 50.0
+    },
+    {
+      "name": "control-defaults",
+      "cadence": {
+        "idleMillis": 20,
+        "reconcileIntervalMillis": 1000,
+        "heartbeatIntervalMillis": 1000
+      },
+      "primaryApplicationCommits": 6682,
+      "primaryControlCommits": 267,
+      "combinedWorkerCommits": 6949,
+      "deliveredBurstP99Millis": 108.63533336669207,
+      "confirmedBurstWritesPerSecond": 9.650012112537851,
+      "minimumHealthyCoverage": 1.0,
+      "nativeIdleApplicationCommitsPerSecond": 50.0
+    },
+    {
+      "name": "idle-50",
+      "cadence": {
+        "idleMillis": 50,
+        "reconcileIntervalMillis": 1000,
+        "heartbeatIntervalMillis": 1000
+      },
+      "primaryApplicationCommits": 5696,
+      "primaryControlCommits": 256,
+      "combinedWorkerCommits": 5952,
+      "deliveredBurstP99Millis": 112.13270761072636,
+      "confirmedBurstWritesPerSecond": 10.010492671212594,
+      "minimumHealthyCoverage": 1.0,
+      "nativeIdleApplicationCommitsPerSecond": 20.0
+    },
+    {
+      "name": "idle-100",
+      "cadence": {
+        "idleMillis": 100,
+        "reconcileIntervalMillis": 1000,
+        "heartbeatIntervalMillis": 1000
+      },
+      "primaryApplicationCommits": 5605,
+      "primaryControlCommits": 288,
+      "combinedWorkerCommits": 5893,
+      "deliveredBurstP99Millis": 119.06816624104977,
+      "confirmedBurstWritesPerSecond": 9.079327145144271,
+      "minimumHealthyCoverage": 1.0,
+      "nativeIdleApplicationCommitsPerSecond": 10.0
+    },
+    {
+      "name": "baseline-after",
+      "cadence": {
+        "idleMillis": 20,
+        "reconcileIntervalMillis": 100,
+        "heartbeatIntervalMillis": 500
+      },
+      "primaryApplicationCommits": 6810,
+      "primaryControlCommits": 1540,
+      "combinedWorkerCommits": 8350,
+      "deliveredBurstP99Millis": 98.85662514716387,
+      "confirmedBurstWritesPerSecond": 10.026473163599002,
+      "minimumHealthyCoverage": 1.0,
+      "nativeIdleApplicationCommitsPerSecond": 50.0
+    }
+  ],
+  "verification": {
+    "allFiveQualificationsPassed": true,
+    "allUserWorkUnitsCommitted": true,
+    "applicationNonDriveClassCountsIdentical": true,
+    "analyzerTests": 4,
+    "nativeToolingTests": 8,
+    "nativeFilteredRatePoints": 15226,
+    "plottedPoints": 3020,
+    "nativeGraphs": 5,
+    "ownedNativeProcessesExited": 20,
+    "originalWorkerHashesPreserved": 9,
+    "observationGemCommits": 0,
+    "allMcpGatesRestored": true,
+    "gtRebuilt": false
+  }
+}

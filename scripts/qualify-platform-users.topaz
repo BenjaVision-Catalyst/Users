@@ -1,6 +1,6 @@
 expectvalue true
 run
-| directory phase file parameters runtimeName key runtime root report configuration users orchestrator control application services deployments selected client gate created expected hosts samples |
+| directory phase file parameters runtimeName key runtime root report configuration users orchestrator control application services deployments selected client gate created expected hosts samples cadence |
 System abortTransaction. System transactionMode: #manualBegin.
 directory := System gemEnvironmentVariable: 'BVC_USERS_PLATFORM_DIRECTORY'.
 phase := System gemEnvironmentVariable: 'BVC_USERS_PLATFORM_PHASE'.
@@ -12,7 +12,8 @@ report := Dictionary new at: 'phase' put: phase; at: 'runtime' put: runtimeName;
 phase = 'configure' ifTrue: [
  runtime ifNotNil: [self error: 'Qualification Runtime already exists'].
  (UserGlobals includesKey: key) ifTrue: [self error: 'Qualification root already exists'].
- orchestrator := CROrchestrationConfiguration default heartbeatIntervalMillis: 500; reconcileIntervalMillis: 100; yourself.
+ cadence := parameters at: 'cadenceConfiguration' ifAbsent: [Dictionary new].
+ orchestrator := CROrchestrationConfiguration default heartbeatIntervalMillis: (cadence at: 'heartbeatIntervalMillis' ifAbsent: [500]); reconcileIntervalMillis: (cadence at: 'reconcileIntervalMillis' ifAbsent: [100]); yourself.
  users := CUUsersConfiguration new identifier: #users; label: 'Authoritative Users'; authoritative: true; maximumFeeds: (parameters at: 'maximumFeeds' ifAbsent: [16]); maximumUsersPerFeed: (parameters at: 'maximumUsersPerFeed' ifAbsent: [256]); yourself.
  services := OrderedCollection with: orchestrator with: users.
  (parameters at: 'clients') do: [:spec | | connect target identifier |
@@ -20,7 +21,7 @@ phase = 'configure' ifTrue: [
   file := GsFile openReadOnServer: (spec at: 'serverOptions').
   [connect := CCQuicConfiguration new nativeProtocolVersion: 2; identifier: identifier; label: ((parameters at: 'fanout' ifAbsent: [false]) ifTrue: [directory] ifFalse: ['Platform Users endpoint']);
    nativeOptionsJson: file contents; libraryPath: (parameters at: 'library'); principal: (spec at: 'name');
-   idleMillis: 20; allowedOperations: #(1 2 3 4 5 6 7 8 9 65534); applicationClass: ((parameters at: 'fanout' ifAbsent: [false]) ifTrue: [CUUsersFanoutApplicationFixture] ifFalse: [CUUsersCommitGateApplicationFixture]); yourself] ensure: [file close].
+   idleMillis: (cadence at: 'idleMillis' ifAbsent: [20]); allowedOperations: #(1 2 3 4 5 6 7 8 9 65534); applicationClass: ((parameters at: 'fanout' ifAbsent: [false]) ifTrue: [CUUsersFanoutApplicationFixture] ifFalse: [CUUsersCommitGateApplicationFixture]); yourself] ensure: [file close].
   target := CRServiceBindingConfiguration new identifier: #users; label: 'Users'; serviceIdentifier: #users; yourself.
   connect bindings: {target}. services add: connect].
  configuration := CRRuntimeConfiguration new label: 'Native platform Users qualification'; services: services asArray; yourself.
@@ -107,6 +108,12 @@ phase = 'verify' ifTrue: [
  report at: 'defaultTransactionalWorker' put: true; at: 'onlySuccessfulUsersPersisted' put: true; at: 'createdCodepoints' put: (created collect: [:user | user name asArray collect: [:char | char asciiValue]]) asArray;
   at: 'outcomes' put: (samples collect: [:sample | {sample isSuccessful. sample transactionOutcome asString. sample completionRecordingOutcome asString}]) asArray].
 phase = 'fanoutVerify' ifTrue: [
+ services := runtime configuration services.
+ orchestrator := services detect: [:service | service identifier = CRRuntime orchestratorIdentifier].
+ selected := services detect: [:service | service isKindOf: CCQuicConfiguration].
+ report at: 'cadenceConfiguration' put: (Dictionary new at: 'idleMillis' put: selected idleMillis;
+  at: 'reconcileIntervalMillis' put: orchestrator reconcileIntervalMillis;
+  at: 'heartbeatIntervalMillis' put: orchestrator heartbeatIntervalMillis; yourself).
  expected := parameters at: 'expectedUsers'.
  created := CUUsers allUsers select: [:user | user name beginsWith: (parameters at: 'prefix')].
  created size = expected size ifFalse: [self error: 'Unexpected fan-out Users count'].

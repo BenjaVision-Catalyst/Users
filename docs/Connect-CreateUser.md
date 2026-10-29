@@ -323,3 +323,20 @@ mix.json --vsd-analysis CASE/analysis`. Source `user-workunit-vsd-export.tcl` fr
 fresh VSD profile for native commit-rate graphs, using the existing capture and
 analysis environment variables. The full reproduction and limitations are in the
 evidence archive.
+
+The [configuration-only cadence experiment](https://github.com/BenjaVisionPro/catalyst-workspace/blob/main/Connect/evidence/user-runtime-cadence-2026-10-29.md)
+compares five matched 60-observer runs. Existing configuration values of 50 ms
+Connect idle and 1000 ms reconciliation/heartbeat reduce combined worker commits
+27.5–28.7%, with complete burst coverage and delivered-update p99 about 112 ms
+against 99–101 ms baselines. The 100 ms idle case saves little additional work
+and falls behind the ten-write/second offer schedule. These are candidate
+settings for this native GemStone workload, with no production default changes.
+
+Pass `--connect-idle-millis`, `--reconcile-interval-millis` and
+`--heartbeat-interval-millis` to the GemStone fan-out controller to populate the
+existing Runtime configuration. It reads back the accepted values after the run.
+Omitted flags retain the qualification's previous 20/100/500 ms settings.
+`analyze-user-cadence.py` compares completed experiment cases and emits numeric
+inputs for `user-cadence-vsd-export.tcl`, which uses native VSD filters and preserves
+the exact aligned chart vectors. Full commands, data and timing limitations are
+retained with the linked evidence.
