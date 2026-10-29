@@ -92,5 +92,6 @@
     ],
     "notes": "GT Swift and Unreal used separate disposable fixtures after a project startup failure; see complete evidence."
   },
-  "evidence": "https://github.com/BenjaVisionPro/catalyst-workspace/blob/main/Connect/evidence/user-server-push-scaling-2026-10-29.json"
+  "evidence": "https://github.com/BenjaVisionPro/catalyst-workspace/blob/main/Connect/evidence/user-server-push-scaling-2026-10-29.json",
+  "pauseInvestigation": "https://github.com/BenjaVisionPro/catalyst-workspace/blob/main/Connect/evidence/user-server-push-vsd-2026-10-29.md"
 }

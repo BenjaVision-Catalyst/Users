@@ -299,3 +299,9 @@ admission lag are retained in the
 uses optimized clients and a paced ten-update/second admission schedule. The
 writer records its scheduled offer time and actual submission time, so a late
 reply cannot silently turn that run into a claim of sustained offered throughput.
+
+The [native VSD follow-up](https://github.com/BenjaVisionPro/catalyst-workspace/blob/main/Connect/evidence/user-server-push-vsd-2026-10-29.md)
+reproduced three multi-second writer stalls with native log-sync bursts and no
+serving-Gem GC in the recorded contained intervals. It includes actual VSD chart
+snapshots, a steady-window comparison, raw data and bounded collection/analysis
+scripts. Runtime and durability semantics remain unchanged.

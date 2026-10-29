@@ -1,0 +1,98 @@
+{
+  "date": "2026-10-29",
+  "evidence": "https://github.com/BenjaVisionPro/catalyst-workspace/blob/main/Connect/evidence/user-server-push-vsd-2026-10-29.md",
+  "findings": {
+    "measured": "Three writer requests of 3.70, 3.84 and 3.91 seconds coincide with Stone log-sync bursts and serving-Gem Stone-commit waits. No serving-Gem GC time or collections occur in the recorded fully contained intervals, also under the extra conservative boundary margin.",
+    "inference": "The current signature is consistent with the earlier native tranlog F_FULLFSYNC/APFS wait evidence. This VSD capture alone does not establish the filesystem/device cause or kernel waker for the current run.",
+    "earlierEvidence": "Connect/Experiments/quic-baseline/GEMSTONE-FULLSYNC.md",
+    "success": "One and 60 observers passed existing checks, with every healthy observer receiving all 384 burst revisions.",
+    "nextInvestigation": "Account for the existing per-WorkUnit durable commit mix and verify the host log-flush path before considering any policy changes. Preserve business commit-before-result publication, lifecycle and evidence semantics."
+  },
+  "slowRequests": [
+    {
+      "observers": 1,
+      "writerRTTMillis": 3703.381,
+      "containedStoneSyncMillis": 3493,
+      "containedServingGcMillis": 0
+    },
+    {
+      "observers": 1,
+      "writerRTTMillis": 3844.435,
+      "containedStoneSyncMillis": 3392,
+      "containedServingGcMillis": 0
+    },
+    {
+      "observers": 60,
+      "writerRTTMillis": 3913.656,
+      "containedStoneSyncMillis": 3421,
+      "containedServingGcMillis": 0
+    }
+  ],
+  "nativeVectorVerification": {
+    "series": 6,
+    "deltaPointsVerified": 7258,
+    "initialPoints": [
+      {
+        "type": "Stn",
+        "pid": 9898,
+        "stat": "StnAioTimeInFsyncMs",
+        "firstNativeValue": 0.0,
+        "note": "No preceding sample in this selected identity; excluded from delta equality checks"
+      },
+      {
+        "type": "Gem",
+        "pid": 32292,
+        "stat": "TimeStoneCommit",
+        "firstNativeValue": 19.0,
+        "note": "No preceding sample in this selected identity; excluded from delta equality checks"
+      },
+      {
+        "type": "Gem",
+        "pid": 32292,
+        "stat": "TimeInScavenges",
+        "firstNativeValue": 0.0,
+        "note": "No preceding sample in this selected identity; excluded from delta equality checks"
+      },
+      {
+        "type": "Gem",
+        "pid": 32292,
+        "stat": "TimeInMarkSweep",
+        "firstNativeValue": 0.0,
+        "note": "No preceding sample in this selected identity; excluded from delta equality checks"
+      },
+      {
+        "type": "Gem",
+        "pid": 32292,
+        "stat": "ScavengeCount",
+        "firstNativeValue": 0.0,
+        "note": "No preceding sample in this selected identity; excluded from delta equality checks"
+      },
+      {
+        "type": "Gem",
+        "pid": 32292,
+        "stat": "MarkSweepCount",
+        "firstNativeValue": 0.0,
+        "note": "No preceding sample in this selected identity; excluded from delta equality checks"
+      }
+    ],
+    "nativeVsdFiltersMatchRawCounterDeltas": true
+  },
+  "preservation": {
+    "originalWorkerHashesUnchanged": 9,
+    "developmentRuntimePreserved": true,
+    "mcpGate": {
+      "servers": 1,
+      "originalRegistriesRestored": true,
+      "preexistingCalls": 1,
+      "state": "released",
+      "quiescenceElapsedMillis": 288,
+      "refusedCalls": 0
+    },
+    "collectorCleanDetach": true,
+    "collectorExit": 5,
+    "temporaryDisplayStopped": true,
+    "newBusinessFixturesOnly": true,
+    "originalWorkReplayed": false,
+    "gtRebuilt": false
+  }
+}
