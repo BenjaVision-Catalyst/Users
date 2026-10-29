@@ -227,7 +227,7 @@ CUUsersExamples >> testNonAuthoritativeServiceCannotCreateUser [
   self deny: (users identityIncludes: user) ]
 ]
 
-{ #category : 'tests' }
+{ #category : 'tests - loading' }
 CUUsersExamples >> testProductionAndTestLoadGroupsAreSeparate [
  <gtExample>
  <return: #MetacelloVersion>
@@ -240,7 +240,7 @@ CUUsersExamples >> testProductionAndTestLoadGroupsAreSeparate [
  self assert: (version packageNamed: 'BVC-Users-Runtime') requires asArray equals: #('BVC-Users-Core' 'CatalystRuntime').
  coreClasses := (((MCPackage named: 'BVC-Users-Core') snapshot definitions select: [:definition | definition isClassDefinition]) collect: [:definition | definition className asString]) asArray sorted.
  runtimeClasses := (((MCPackage named: 'BVC-Users-Runtime') snapshot definitions select: [:definition | definition isClassDefinition]) collect: [:definition | definition className asString]) asArray sorted.
- self assert: coreClasses equals: #('CUAmbiguousUserError' 'CUUser' 'CUUserCreationError' 'CUUsers').
+ self assert: coreClasses equals: #('CUAmbiguousUserError' 'CULiveUserState' 'CUUser' 'CUUserChange' 'CUUserCreationError' 'CUUsers').
  self assert: runtimeClasses equals: #('CUCreateUserWorkUnit' 'CUGetUserWorkUnit' 'CUUsersCapability' 'CUUsersService' 'CUUsersWorkUnit').
  ^ version
 ]

@@ -1,0 +1,202 @@
+{
+  "date": "2026-10-29",
+  "passed": true,
+  "scope": "First live User slice: Swift macOS, iOS Simulator, UE5.8 Mac arm64 to configured authoritative GemStone Users",
+  "runtime": "platform_users_d03f3c896aea",
+  "profiles": {
+    "legacy": "installed-scalar-array-1",
+    "live": "installed-state-array-2",
+    "nativeABI": 1,
+    "alpn": "catalyst-connect/1",
+    "transportChanged": false
+  },
+  "liveOperations": {
+    "3": "create",
+    "4": "read",
+    "5": "update",
+    "6": "recover creation"
+  },
+  "schemas": {
+    "request": "71f6a5241e5dea62f3bc651e8a1b3aafe8ddfcaae9eda7e147807c865adadbf1",
+    "state": "6f4dc62ac9dfdcb45922152eb2f18d591222476b2ca5b1ccfc34676065fb4985",
+    "legacyUser": "742282f3bd6d47c824c6c12a2244dcb79ac5b13ba1d94aa4bd60b843608185cb"
+  },
+  "clients": {
+    "swift-macos": {
+      "passed": true,
+      "noSuccessBeforeCommit": true,
+      "independentGemRead": true,
+      "nativeResult": true,
+      "rollbackUnknown": true,
+      "superUserUnknown": true,
+      "mismatchRefused": true,
+      "explicitReconnect": true,
+      "noAutomaticReplay": true,
+      "lookupFound": true,
+      "lookupNotFound": true,
+      "lookupAmbiguousRefused": true,
+      "lookupExactName": true,
+      "lookupDefaults": true,
+      "lookupRollbackAbsent": true,
+      "lookupUnicode": true,
+      "liveAdoption": true,
+      "identityCache": true,
+      "automaticRefresh": true,
+      "conflictPreservesDraft": true,
+      "lostCreationRecovered": true,
+      "liveRollbackAbsent": true
+    },
+    "swift-ios": {
+      "passed": true,
+      "noSuccessBeforeCommit": true,
+      "independentGemRead": true,
+      "nativeResult": true,
+      "rollbackUnknown": true,
+      "superUserUnknown": true,
+      "mismatchRefused": true,
+      "explicitReconnect": true,
+      "noAutomaticReplay": true,
+      "lookupFound": true,
+      "lookupNotFound": true,
+      "lookupAmbiguousRefused": true,
+      "lookupExactName": true,
+      "lookupDefaults": true,
+      "lookupRollbackAbsent": true,
+      "lookupUnicode": true,
+      "liveAdoption": true,
+      "identityCache": true,
+      "automaticRefresh": true,
+      "conflictPreservesDraft": true,
+      "lostCreationRecovered": true,
+      "liveRollbackAbsent": true
+    },
+    "unreal": {
+      "passed": true,
+      "noSuccessBeforeCommit": true,
+      "independentGemRead": true,
+      "nativeResult": true,
+      "rollbackUnknown": true,
+      "superUserUnknown": true,
+      "mismatchRefused": true,
+      "explicitReconnect": true,
+      "noAutomaticReplay": true,
+      "lookupFound": true,
+      "lookupNotFound": true,
+      "lookupAmbiguousRefused": true,
+      "lookupExactName": true,
+      "lookupDefaults": true,
+      "lookupRollbackAbsent": true,
+      "lookupUnicode": true,
+      "liveAdoption": true,
+      "identityCache": true,
+      "automaticRefresh": true,
+      "conflictPreservesDraft": true,
+      "lostCreationRecovered": true,
+      "liveRollbackAbsent": true
+    }
+  },
+  "persistence": {
+    "heldInsertInvisibleBeforeCommit": true,
+    "oneCommittedIdentityAfterLostReply": true,
+    "exactExpectedUsersPersisted": true,
+    "defaultTransactionalWorker": true,
+    "ownedUsersRemoved": 18,
+    "originalUsersPreserved": true
+  },
+  "sourceVerification": {
+    "liveGTAuthoritative": true,
+    "independentGTExportDefinitions": [
+      [
+        "BVC-Users-Tests",
+        34
+      ],
+      [
+        "BVC-Connect-Objects-Core",
+        79
+      ],
+      [
+        "BVC-Users-Connect-Tests",
+        27
+      ],
+      [
+        "BVC-Users-Runtime",
+        30
+      ],
+      [
+        "BVC-Users-Core",
+        40
+      ],
+      [
+        "BVC-Users-Connect-Core",
+        47
+      ]
+    ],
+    "nativeGemStoneDefinitionsExcludingOrganization": [
+      [
+        "BVC-Connect-Objects-Core",
+        78
+      ],
+      [
+        "BVC-Users-Core",
+        39
+      ],
+      [
+        "BVC-Users-Runtime",
+        29
+      ],
+      [
+        "BVC-Users-Tests",
+        33
+      ],
+      [
+        "BVC-Users-Connect-Core",
+        46
+      ],
+      [
+        "BVC-Users-Connect-Tests",
+        26
+      ]
+    ],
+    "everyDefinitionMatched": true,
+    "finalValidationConsolidation": "Same hashes; 45 GT examples and 4 native selected contracts rerun after consolidation"
+  },
+  "tests": {
+    "gtExamples": 45,
+    "gtFailures": 0,
+    "swiftSchemaTests": 5,
+    "swiftSchemaFailures": 0,
+    "nativeGemStoneSelectedContracts": 4,
+    "ueEditorBuild": "passed",
+    "ueGameBuild": "passed",
+    "iosUnsignedArm64DeviceBuild": "passed; not executed on hardware"
+  },
+  "isolation": {
+    "servers": 1,
+    "originalRegistriesRestored": true,
+    "preexistingCalls": 1,
+    "state": "released",
+    "quiescenceElapsedMillis": 355,
+    "refusedCalls": 0,
+    "developmentRuntimePreserved": true,
+    "gtRebuilt": false,
+    "connectPerformanceHarnessChanged": false
+  },
+  "policy": {
+    "defaultMaximumObjects": 64,
+    "maximumConfiguredObjects": 256,
+    "defaultRefreshSeconds": 1,
+    "minimumRefreshMilliseconds": 20,
+    "refresh": "full-state polling; live configurable",
+    "unknownWrites": "never automatically replayed",
+    "cacheScope": "selected caller-owned transport / GameInstance"
+  },
+  "security": "Configured pinned peer identity and existing Runtime capability; updates require creator peer. Account/tenant authorization remains future work.",
+  "notClaimed": [
+    "push subscriptions or history",
+    "graph/4 transfer or relations",
+    "GT managed live-object facade",
+    "physical iOS device execution",
+    "full release-catalog conformance",
+    "CapTP/OCapN, Cap’n Proto or DDS interoperability"
+  ]
+}

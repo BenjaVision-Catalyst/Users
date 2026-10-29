@@ -1,135 +1,111 @@
 # Users API through Connect
 
-The optional `connect` load group adds `BVC-Users-Connect-Core`. Default Users
-loading still selects only `BVC-Users-Core` and `BVC-Users-Runtime`.
+Load `connect` / `CatalystUsersConnect.ston` for `BVC-Users-Connect-Core`.
+Default Users loading remains Core and Runtime. `tests-connect` adds the optional
+qualification fixtures; production uses `CUUsersObjectApplication`.
 
-```smalltalk
-Metacello new
-    baseline: 'CatalystUsers';
-    repository: 'github://BenjaVision-Catalyst/catalyst-users:main/src';
-    load: #('connect').
-```
+Configure a local authoritative `#users` service and a Connect `#users` binding.
+Enable operations `#(1 2 3 4 5 6 65534)` for both snapshot and live clients; existing
+configurations with only 1/2 remain supported. The configured peer principal is
+bound to the pinned transport identity. A label is not an account credential.
+Connect and Users use the existing configured default transactional worker,
+capability checks, routing and published evidence. No alternative worker, store,
+management connection or routing system is introduced.
 
-`CUUser` supplies its own name/Boolean Magritte descriptions through this optional
-package. Connect derives both codecs from those descriptions. No application field
-schema, request identifier, networking capability or reply-building code is needed
-in the Users handler.
+## Live User lifecycle
 
-Configure `CCQuicConfiguration` with `CUUsersObjectApplication`, allowed operations
-`#(1 65534)`, pinned native peer options and a `#users` service binding. On the
-server the binding is local and names the authoritative `#users` service. On the
-client it names the expected Runtime and this local Connect service. The expected
-Runtime label must match the configured Connect principal; the certificate pin is
-the transport trust mapping for that label. A label is not an account credential.
+`CUUser` has a stable, server-assigned identifier and a monotonic state revision.
+Legacy and default Users receive their identity lazily during a live transaction.
+The temporary `CUUsers AllUsers` store is unchanged; tenant storage remains future
+work. Names remain exact, case-sensitive and nonunique; ambiguous lookup refuses.
 
-For this first deployment, place Connect and Users on the same configured
-application worker, with a separate orchestrator if desired. Runtime creates its
-default worker from configuration. Existing publications select the named service;
-the native topology attaches the local operational handle only in its owning Gem.
-Other Gems keep their existing remote proxies. No published state or router is
-replaced. Activation-local callbacks and routing tickets are refused by the
-durable queue, so cross-Gem reply delivery is not implied by this arrangement.
-
-After the configured client Connect service is available:
-
-```smalltalk
-users := CUUsersClient usingConnectService: connectService.
-future := users createUser: (CUUser new name: 'Ada'; yourself).
-"After future isFinished, a completed future value is a native CUUser."
-```
-
-Startup establishes the immutable description agreement and read-only capability
-probe. Calls before binding readiness return `unavailable`. The client-created
-object is reconstructed as a native `CUUser` in GemStone. The installed
-`CUCreateUserMessageWork` retains the existing Users capability/transaction
-contracts and delegates to `CUCreateUserWorkUnit`; the service calls `CUUsers`.
-No transport state enters the Users store.
-
-Runtime completion explicitly opts in to both `afterFinalization` and `afterCommit`.
-The default native worker retains the result locally until its owned outer commit
-returns successfully and completion evidence is recorded. Only then can Connect
-encode and publish it. Inner rollback, rejected/uncertain commit, or recording
-failure cannot publish success. Callback/encoding failure cannot replay a committed
-creation. Portable in-memory execution cannot claim a committed result.
-
-The client receives a new native value with the committed user's current fields;
-this temporary model does not yet supply a stable user identifier. Failures after
-admission currently return `unknown`, including confirmed rollback at the server.
-No automatic retry follows that state. Typed business-error results, durable reply
-recovery and tenant/account authorization remain separate work.
-
-## Repeatable native qualification
-
-Load `tests-connect` in GT and the corresponding verified production and common
-qualification packages in the development stone. The GT test group includes
-Connect's native MCP lease/owner helpers. The native controller does not provision
-stones, rebuild GT or install source. It uses the existing immutable native library.
-
-```sh
-python3 scripts/qualify-connect-create-user.py \
-  --project /absolute/path/to/bvc-project \
-  --deployment <development-stone> \
-  --bvc /absolute/path/to/bvc \
-  --library /absolute/path/to/libcatalyst_connect.dylib \
-  --output /absolute/path/to/new-evidence-directory
-```
-
-The runner creates a unique configured server Runtime and a configured GT client
-Runtime, with one independent GT owner under `CCNativeMcpLease`. It waits outside
-GT for the released/restored gate before inspecting/joining. Its explicit server
-test application reuses the production Users operation and adds one post-insertion
-failure case. The client observes native committed success and no success for that
-rollback or super-user rejection. A fresh Gem confirms that only the successful
-user persisted. It also verifies rejection of an invalid authority change while a
-local binding requires that authority. Successful cleanup removes only its test
-Runtime/user/root, unregisters its stopped GT Runtime, and positively releases
-GT native buffers. Failed runs retain
-their evidence for inspection.
-
-Rowan equivalents are `CatalystUsersConnect.ston` and
-`CatalystUsersConnectTests.ston`; the latter adds common tests without GT scenario
-classes. Syntax and dependency selection are checked; direct Rowan loading remains
-unqualified in the current stone. See [qualification evidence](../conformance/connect-create-user-2026-10-29.json).
-
-## Unreal and Swift clients
-
-The native clients now implement the same installed-description agreement as GT.
-Their actual Users models own the two Magritte descriptions; generic Connect
-adapters derive immutable revisions, field ordering, validation and codecs. There
-is no additional Users wire schema. The description revision matches the live
-Smalltalk model, and the service readiness probe uses the same configured route
-and capability as a call. Client readiness is tied to one connection activation.
-
-Swift's `CatalystUsers` product supplies `CUUser` and MainActor `CUUsers`:
+Swift `CUUsers` and Unreal's per-GameInstance `UCUSubsystem` maintain an identity
+map within the selected transport scope. Confirmed creation adopts the original
+native object. Lookup of the same identifier returns that instance while it is
+retained. Identity is never transferred across authority connections. Different
+client scopes retain independent replicas of the same persistent User.
 
 ```swift
 let users = try CUUsers(connect: connectedTransport)
-try await users.prepare()
-let created = try await users.createUser(CUUser(name: "Ada"))
+let user = CUUser(name: "Ada")
+users.createUser(user) // Fabric owns execution; observe the optional operation if needed.
+// user.replica reports creating/live/uncertain/conflict and the committed identity/revision.
+user.name = "Ada Lovelace" // Pending edit; submitted automatically after confirmation.
 ```
 
-Unreal's `CatalystUsers` plugin supplies Blueprint-compatible `FCUUser` and
-`UCUSubsystem`. Select the caller-configured Connect connection with `UseConnection`,
-call `Prepare` after transport readiness, then `CreateUser`. `Completed` is the only
-outcome carrying a valid user; error outcomes carry the Blueprint default struct.
-The generic endpoint retains its immutable result schema through terminal
-observation. Domain plugins own no socket, native worker thread or remote class
-registry. Both clients require a new probe after explicit reconnect.
+```cpp
+auto* Users = GameInstance->GetSubsystem<UCUSubsystem>();
+Users->UseConnection(TEXT("Users")); // Existing caller-configured Connect connection.
+auto* User = NewObject<UCUUser>(GameInstance); // Retain through UPROPERTY in the host.
+User->SetUserName(TEXT("Ada"));
+Users->CreateUser(User); // Optional UCUUserOperation; subscribe to OnError when needed.
+```
 
-Neither client treats local admission as a result. Successful bytes arrive through
-the existing GemStone `afterCommit`/`afterFinalization` completion path and are
-validated before a native user value is exposed. Rollback, super-user rejection,
-uncertain execution, malformed success and transport loss cannot manufacture a
-user result. The current failure policy remains unknown after failed execution;
-no mutation is automatically replayed. Tenant/account authorization and stable
-user identifiers remain separate domain work.
+The Fabric negotiates installed Magritte descriptions automatically for live calls.
+Swift uses our Magritte Swift port, native accessors and ObservableObject;
+Unreal uses our C++ port, native accessors and UObject change/error events.
+Server-owned fields are read-only in live descriptions. The transfer constructs
+inert installed values before applying a state; peer bytes never choose code,
+classes, selectors or destinations. UI generation itself is future work.
 
-### Repeatable cross-platform qualification
+A bounded coordinator per scope sends full-state refreshes over the existing
+connection. Defaults are 64 retained objects and a one-second refresh interval.
+The maximum is configurable up to 256, and the interval has a 20ms minimum.
+`configureLiveUsers` / `ConfigureLiveUsers` applies policy changes live. Disable
+automatic refresh and use `synchronizeNow` / `RefreshLiveUsers` for explicit control.
+Swift API instances sharing a ConnectClient share the same policy and cache.
+The host remains responsible for connection lifecycle/reconnect and retaining
+observed User objects. This first slice uses polling, without server push/history.
 
-Build the combined Swift package with Connect's `build-apple.py --users`, stage
-the pinned Quinn and Magritte archives for Unreal, and build the isolated UE5.8
-host with Foundation/Connect/Users. Load the verified common `tests-connect`
-fixtures in the stone. Then run:
+Edits retain their base revision. A matching revision permits an update; a conflict
+returns current state without overwriting the draft. `resolveConflict(keepLocal:)`
+/ `ResolveConflict` explicitly accepts remote state or rebases the draft for a
+later update. Edits made during creation or an in-flight update remain pending.
+An uncertain admitted update is never automatically replayed: reading a snapshot
+does not prove whether that write ran. Explicit resolution is required.
+
+Creation has a stable operation key. The authority stores its receipt on the User
+in the same transaction as insertion, scoped to the verified creator peer and
+original name. Duplicate keys cannot create another User; a reused key with a
+different original name refuses. On reconnect the Fabric renegotiates and asks for
+the receipt, adopting the original object after confirmation and preserving newer
+edits. A missing receipt means unknown and does not authorize recreation. Receipts
+last for the User's lifetime; deletion recovery and general operation journals are
+not provided. The original one-shot operation remains terminal after an unknown
+result; subsequent recovery is visible on the User.
+
+All results, including recovery, use Runtime's existing afterFinalization and
+afterCommit completion. No successful response precedes successful outer commit
+and completion recording. Rollback or transport loss cannot manufacture success.
+Local admission is not durable success. Default error reporting is provided;
+applications may install `onError` / `OnFabricError` or per-object observers.
+
+Updates currently require the verified peer that created the User. Reads use the
+configured Users capability. Default/legacy Users without a creator are not remotely
+editable through these operations. This is an initial peer-level permission rule,
+not account/tenant authorization or a production-complete security model.
+
+## Protocol and compatibility
+
+Operations 3/4/5/6 are live create/read/update/recover. Their installed request and
+state descriptions use the additive state-v2 profile. Current Quinn transport,
+ALPN, native ABI and 4080-byte bound are unchanged; no CapTP, Cap'n Proto or DDS
+runtime is required. See Connect's `conformance/object-messaging.md` for manifests.
+The profile supports bounded scalar fields, not graph/4, relations, distributed
+reference collection or remote code installation.
+
+Legacy operations 1/2 retain their original two-field CUUser schema and fresh-value
+semantics. Swift exposes `prepare`, `createUserSnapshot` and `getUserSnapshot`;
+Unreal exposes `Prepare`, `CreateUserSnapshot` and `GetUserSnapshot` with
+`FCUUserSnapshot` (`FCUUser` remains a C++ alias). Legacy Blueprint nodes use the
+Snapshot names. Explicit legacy preparation is required after reconnect.
+GT's existing `CUUsersClient` remains a snapshot client for this first live slice.
+
+## Native qualification
+
+Build Connect Swift's combined Apple package using `build-apple.py --users`, and
+stage/build Foundation, Connect and Users in an isolated UE5.8 host. Load verified
+GT-owned common `tests-connect` source in GemStone. Run:
 
 ```sh
 python3 scripts/qualify-platform-users.py \
@@ -140,74 +116,18 @@ python3 scripts/qualify-platform-users.py \
   --ue-project /path/to/ConnectHost.uproject --output /path/to/new-results
 ```
 
-The controller owns one independent Runtime created from configuration. Its three
-pinned Connect endpoints and authoritative Users service share the existing default
-transactional application worker; a separate configured worker runs orchestration.
-No Connect performance harness, topology publication or routing path is replaced.
-Native source/build preparation is explicit; this runner never compiles Smalltalk,
-rebuilds GT or provisions a stone.
+The controller owns one disposable configured Runtime under CCNativeMcpLease.
+It checks no result/visibility before commit in independent Gems, exact final
+store contents, rollback absence, adoption, caching, automatic refresh, conflicts
+and lost-reply recovery. Cleanup removes only owned Users/Runtime, restores the
+gate and preserves the existing development worker processes. The controller
+reads the released/restored MCP gate outside GT before joining. No GT rebuild,
+source installation or Connect performance-harness modification occurs.
 
-The opt-in `CUUsersCommitGateApplicationFixture` delegates to the production Users
-operation and pauses a marked call after insertion, before outer commit. A trusted
-controller supplies its gate directory; payloads cannot choose paths or execution
-policy. While held, the outside controller confirms that the client has no native
-result and a fresh Gem cannot see the insertion. After release, the client gets a
-native value and a fresh Gem sees exactly one committed user. Other calls verify
-rollback after insertion, super-user rejection, description mismatch, stale
-agreement, reconnect and Unicode/JSON-escape value interchange. Store inspection
-checks exact expected names/counts, so replay cannot pass unnoticed.
+Earlier snapshot qualifications remain recorded in
+[creation evidence](../conformance/platform-create-user-2026-10-29.json) and
+[lookup evidence](../conformance/platform-get-user-2026-10-29.json).
+Direct Rowan loading and physical iOS hardware execution remain unqualified.
 
-The GT MCP lease remains held through external native validation and managed
-Runtime cleanup. Its completion marker is read outside GT before joining. Cleanup
-stops/removes only the test Runtime, removes only its uniquely named users, restores
-the test gate, deletes ephemeral test keys and preserves the pre-existing development
-Runtime's worker processes. Failed runs retain diagnostic evidence.
-
-See [platform qualification](../conformance/platform-create-user-2026-10-29.json).
-macOS Swift, iOS Simulator and UE5.8 Mac arm64 are exercised. The unsigned iOS device
-build is qualified separately; physical-device execution, full description discovery,
-relations and release-catalog conformance are not claimed.
-
-## Exact-name lookup from Unreal and Swift
-
-Enable operation `2` alongside `1` and `65534` to expose `getUser`. Existing
-creation-only configurations remain valid. The same configured Connect application
-selects an installed binding per operation; each binding has its own description
-agreement and routes through the existing `#users` capability/service.
-
-`CUUsers getUser: exactName` returns the matching stored user, nil when absent,
-and signals `CUAmbiguousUserError` if multiple users have that exact name. Matching
-is case-sensitive without trimming or normalization. Creation still permits
-repeated names; lookup never selects an arbitrary match. This temporary lookup
-key will need revisiting when stable user identifiers and tenant storage arrive.
-
-The name-only `CUUserLookup` request reuses `CUUser`'s name description with local
-native accessors. Successful replies use the unchanged `CUUser` description and
-construct a fresh native user. Missing names produce an empty status404 reply;
-ambiguous names produce an empty status422 refusal. Only the installed lookup
-binding maps these domain outcomes. Runtime publishes them through its existing
-transactional `afterCommit`/`afterFinalization` completion path. Transport loss,
-failed execution or stale service scope remain uncertain outcomes, rather than
-being mistaken for absence.
-
-```swift
-try await users.prepare() // Establish both operation agreements after connecting.
-if let user = try await users.getUser(named: "Ada") {
-    // Native CUUser from the authoritative GemStone service.
-} else {
-    // Explicit not-found response; no unknownUser substitution.
-}
-// Ambiguous names throw ObjectBindingError.refused(status: 422).
-```
-
-In Unreal, call `UCUSubsystem::GetUser(Name, Callback)` after `Prepare`.
-`Completed` carries `FCUUser`; `NotFound` distinguishes absence; `Refused` includes
-ambiguous-name rejection. Consume the user argument only for `Completed`.
-Both bindings require fresh agreement after reconnect, and neither API replays
-requests automatically.
-
-The same platform qualification runner now checks lookup of the newly committed
-user, `admin`, `unknownUser`, absent and differently cased names, ambiguous names,
-rolled-back creations, Unicode names and reconnect. A separate Gem verifies the
-store contents; published worker execution evidence verifies lookup commit and
-completion recording. See [lookup qualification](../conformance/platform-get-user-2026-10-29.json).
+See [live User qualification](../conformance/live-users-2026-10-29.json) for the
+three-platform run, native persistence checks, source verification and build scope.

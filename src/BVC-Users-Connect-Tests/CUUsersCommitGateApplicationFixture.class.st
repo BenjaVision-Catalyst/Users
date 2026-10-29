@@ -6,6 +6,11 @@ Class {
 }
 
 { #category : 'configuration' }
+CUUsersCommitGateApplicationFixture >> liveWorkClasses [
+ ^ {CUCreateLiveUserGateWork. CUReadLiveUserWork. CUUpdateLiveUserWork. CURecoverLiveUserWork}
+]
+
+{ #category : 'configuration' }
 CUUsersCommitGateApplicationFixture >> messageWorkClass [
  ^ CUUsersCommitGateMessageFixture
 ]

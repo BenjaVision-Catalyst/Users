@@ -179,6 +179,15 @@ Smalltalk globals at: {quote(owner)} asSymbol put: run. run snapshot''')
                         except ValueError:
                             pass
                 return False
+            def live_disconnected():
+                marker = directory / 'live-disconnected.json'
+                candidates = [marker]
+                simulator = directory / 'ios-results/simulator.json'
+                if simulator.exists():
+                    device = json.loads(simulator.read_text())['device']
+                    containers = Path.home() / 'Library/Developer/CoreSimulator/Devices' / device / 'data/Containers/Data/Application'
+                    candidates += [containers.parent.parent.parent / 'Documents/live-disconnected.json', *containers.glob('*/Documents/live-disconnected.json')]
+                return any(p.exists() and json.loads(p.read_text(encoding='utf-8-sig')).get('prefix') == client['prefix'] for p in candidates)
             with log_path.open('w') as log:
                 process = subprocess.Popen(command, env=client_env, stdout=log, stderr=subprocess.STDOUT)
                 try:
@@ -200,10 +209,19 @@ Smalltalk globals at: {quote(owner)} asSymbol put: run. run snapshot''')
                             raise RuntimeError('Client did not receive the committed native result: ' + str(log_path))
                         time.sleep(.05)
                     phase('afterCommit')
+                    deadline = time.monotonic() + 70
+                    while not (directory / 'live-inserted.json').exists() or not live_disconnected():
+                        if process.poll() is not None or time.monotonic() > deadline:
+                            raise RuntimeError('Client did not reach lost-confirmation gate: ' + str(log_path))
+                        time.sleep(.05)
+                    phase('liveBeforeCommit')
+                    (directory / 'live-release').touch()
+                    phase('liveAfterCommit')
                     process.wait(timeout=90)
                     if process.returncode:
                         raise RuntimeError('Client failed: ' + str(log_path))
                 finally:
+                    (directory / 'live-release').touch()
                     (directory / 'release').touch()  # Never leave an admitted worker held by the test gate.
                     if process.poll() is None:
                         process.wait(timeout=35)
@@ -220,7 +238,9 @@ Smalltalk globals at: {quote(owner)} asSymbol put: run. run snapshot''')
                                                nativeResult=True, rollbackUnknown=True, superUserUnknown=True,
                                                mismatchRefused=True, explicitReconnect=True, noAutomaticReplay=True,
                                                lookupFound=True, lookupNotFound=True, lookupAmbiguousRefused=True,
-                                               lookupExactName=True, lookupDefaults=True, lookupRollbackAbsent=True, lookupUnicode=True)
+                                               lookupExactName=True, lookupDefaults=True, lookupRollbackAbsent=True, lookupUnicode=True,
+                                               liveAdoption=True, identityCache=True, automaticRefresh=True, conflictPreservesDraft=True,
+                                               lostCreationRecovered=True, liveRollbackAbsent=True)
             save(); print(platform + ': passed', flush=True)
         phase('verify')
         report['passed'] = True

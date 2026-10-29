@@ -44,6 +44,34 @@ CUUsers class >> getUser: exactName [
  ^ matches ifEmpty: [nil] ifNotEmpty: [matches first]
 ]
 
+{ #category : 'live users' }
+CUUsers class >> liveUser: change operation: code principal: principal [
+ | user key |
+ (change isKindOf: CUUserChange) ifFalse: [self error: 'Live User command required.'].
+ (#(3 4 5 6) includes: code) ifFalse: [self error: 'Uninstalled live User operation.'].
+ key := change operationIdentifier.
+ ((principal isString and: [principal notEmpty]) and: [key isString and: [key size between: 1 and: 128]]) ifFalse: [^ CULiveUserState outcome: 'refused'].
+ code = 3 ifTrue: [
+  user := self allUsers detect: [:each | each creationIdentifier = key and: [each creationPrincipal = principal]] ifNone: [nil].
+  user ifNotNil: [^ user creationName = change name ifTrue: [CULiveUserState from: user outcome: 'created'] ifFalse: [CULiveUserState outcome: 'refused']].
+  user := self createUser: (CUUser new name: change name; yourself).
+  user ensureIdentity; creationIdentifier: key principal: principal name: change name.
+  ^ CULiveUserState from: user outcome: 'created'].
+ code = 6 ifTrue: [
+  user := self allUsers detect: [:each | each creationIdentifier = key and: [each creationPrincipal = principal]] ifNone: [nil].
+  ^ user ifNil: [CULiveUserState outcome: 'unknown'] ifNotNil: [CULiveUserState from: user outcome: 'created']].
+ user := change userIdentifier isEmpty
+  ifTrue: [code = 4 ifTrue: [[self getUser: change name] on: CUAmbiguousUserError do: [:error | ^ CULiveUserState outcome: 'refused']] ifFalse: [nil]]
+  ifFalse: [self allUsers detect: [:each | each userIdentifier = change userIdentifier] ifNone: [nil]].
+ user ifNil: [^ CULiveUserState outcome: 'notFound'].
+ user ensureIdentity.
+ code = 4 ifTrue: [^ CULiveUserState from: user outcome: 'current'].
+ user creationPrincipal = principal ifFalse: [^ CULiveUserState outcome: 'refused'].
+ user revision = change expectedRevision ifFalse: [^ CULiveUserState from: user outcome: 'conflict'].
+ user name: change name.
+ ^ CULiveUserState from: user outcome: 'updated'
+]
+
 { #category : 'private' }
 CUUsers class >> newAllUsers [
  ^ OrderedCollection

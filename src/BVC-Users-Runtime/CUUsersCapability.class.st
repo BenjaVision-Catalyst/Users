@@ -38,3 +38,9 @@ CUUsersCapability >> getUser: exactName [
  (service isCurrentResultEpoch: epoch) ifFalse: [CRCapabilityDeniedException signal: 'Users capability has expired.'].
  ^ service getUser: exactName
 ]
+
+{ #category : 'live users' }
+CUUsersCapability >> liveUser: change operation: code principal: principal [
+ (service isCurrentResultEpoch: epoch) ifFalse: [CRCapabilityDeniedException signal: 'Users capability has expired.'].
+ ^ service liveUser: change operation: code principal: principal
+]

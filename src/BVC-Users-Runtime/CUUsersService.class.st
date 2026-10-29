@@ -23,6 +23,13 @@ CUUsersService >> getUser: exactName [
  ^ CUUsers getUser: exactName
 ]
 
+{ #category : 'live users' }
+CUUsersService >> liveUser: change operation: code principal: principal [
+ (self isCurrentResultEpoch: self resultEpoch) ifFalse: [CRCapabilityDeniedException signal: 'Users service is not active.'].
+ (self configuration notNil and: [self configuration isAuthoritative]) ifFalse: [CRCapabilityDeniedException signal: 'Users service is not authoritative.'].
+ ^ CUUsers liveUser: change operation: code principal: principal
+]
+
 { #category : 'lifecycle' }
 CUUsersService >> start [
 super start.

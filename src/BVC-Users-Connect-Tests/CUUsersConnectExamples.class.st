@@ -53,6 +53,55 @@ CUUsersConnectExamples >> testConfiguredBindingRetainsUsersTransactionAndCapabil
  self deny: CUCreateUserMessageWork allowsConflictReplay. ^ binding
 ]
 
+{ #category : 'tests - live objects' }
+CUUsersConnectExamples >> testLiveDescriptionsAreNegotiatedSeparatelyFromLegacy [
+ <gtExample>
+ <return: #CCObjectBinding>
+ | configuration bindings binding state |
+ configuration := self configuration allowedOperations: #(1 2 3 4 5 6 65534); yourself.
+ bindings := CUUsersObjectApplication new bindingsFor: configuration.
+ self assert: (bindings collect: #operation) equals: #(1 2 3 4 5 6).
+ binding := bindings third.
+ self assert: binding requiresTransaction.
+ self assert: binding requestSchema revision equals: '71f6a5241e5dea62f3bc651e8a1b3aafe8ddfcaae9eda7e147807c865adadbf1'.
+ self assert: binding resultSchema revision equals: '6f4dc62ac9dfdcb45922152eb2f18d591222476b2ca5b1ccfc34676065fb4985'.
+ self assert: (CCObjectSchema forObject: CUUser new) revision equals: '742282f3bd6d47c824c6c12a2244dcb79ac5b13ba1d94aa4bd60b843608185cb'.
+ state := CULiveUserState outcome: 'unknown'.
+ self should: [CCObjectSchema forObject: state] raise: Error.
+ self assert: (binding resultSchema decode: (binding resultSchema encode: state)) outcome equals: 'unknown'.
+ self assert: (STONJSON fromString: binding manifest utf8Decoded) first equals: 2.
+ ^ binding
+]
+
+{ #category : 'tests - live objects' }
+CUUsersConnectExamples >> testLiveUserCreationRecoveryAndRevisionConflict [
+ <gtExample>
+ <return: #CULiveUserState>
+ | change first recovered stored result original |
+ original := CUUsers allUsers copy.
+ change := CUUserChange new name: 'Live User contract'; operationIdentifier: UUID new asString36; yourself.
+ [first := CUUsers liveUser: change operation: 3 principal: 'owner'.
+ self assert: first outcome equals: 'created'. self assert: first revision equals: 1. self assert: first userIdentifier notEmpty.
+ self assert: (CUUsers liveUser: change operation: 3 principal: 'owner') userIdentifier equals: first userIdentifier.
+ self assert: CUUsers allUsers size equals: original size + 1.
+ recovered := CUUsers liveUser: change operation: 6 principal: 'owner'.
+ self assert: recovered userIdentifier equals: first userIdentifier.
+ self assert: (CUUsers liveUser: change operation: 6 principal: 'other') outcome equals: 'unknown'.
+ change name: 'Different create input'.
+ self assert: (CUUsers liveUser: change operation: 3 principal: 'owner') outcome equals: 'refused'.
+ change userIdentifier: first userIdentifier; expectedRevision: 1; name: 'Committed new name'.
+ self assert: (CUUsers liveUser: change operation: 5 principal: 'other') outcome equals: 'refused'.
+ result := CUUsers liveUser: change operation: 5 principal: 'owner'.
+ self assert: result outcome equals: 'updated'. self assert: result revision equals: 2.
+ self assert: (CUUsers liveUser: change operation: 5 principal: 'owner') outcome equals: 'conflict'.
+ stored := CUUsers getUser: 'Committed new name'.
+ self assert: stored userIdentifier equals: first userIdentifier.
+ self should: [stored userIdentifier: 'replacement'] raise: Error.
+ result]
+ ensure: [CUUsers allUsers removeAllSuchThat: [:each | each creationIdentifier = change operationIdentifier]].
+ self assert: CUUsers allUsers equals: original. ^ result
+]
+
 { #category : 'tests - lookup' }
 CUUsersConnectExamples >> testLookupUsesExistingUserDescriptionAndCommitCompletion [
  <gtExample>

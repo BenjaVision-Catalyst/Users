@@ -21,12 +21,19 @@ CUUsersObjectApplication >> bindingFor: configuration [
   work: self messageWorkClass service: target serviceIdentifier peer: configuration principal
 ]
 
-{ #category : 'configuration' }
+{ #category : 'live users' }
 CUUsersObjectApplication >> bindingsFor: configuration [
- "Keep explicitly configured creation-only applications compatible. Lookup requires operation 2."
- ^ (configuration allowedOperations includes: 2)
-  ifTrue: [{self bindingFor: configuration. self lookupBindingFor: configuration}]
-  ifFalse: [super bindingsFor: configuration]
+ | result creation |
+ creation := self bindingFor: configuration. result := OrderedCollection with: creation.
+ (configuration allowedOperations includes: 2) ifTrue: [result add: (self lookupBindingFor: configuration)].
+ self liveWorkClasses do: [:work |
+  (configuration allowedOperations includes: work operation) ifTrue: [result add: (CCObjectStateBinding new operation: work operation request: CUUserChange new result: (CULiveUserState outcome: '') work: work service: (configuration bindingNamed: #users) serviceIdentifier peer: creation localIdentity)]].
+ ^ result asArray
+]
+
+{ #category : 'live users' }
+CUUsersObjectApplication >> liveWorkClasses [
+ ^ {CUCreateLiveUserWork. CUReadLiveUserWork. CUUpdateLiveUserWork. CURecoverLiveUserWork}
 ]
 
 { #category : 'configuration' }

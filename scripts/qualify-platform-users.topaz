@@ -20,7 +20,7 @@ phase = 'configure' ifTrue: [
   file := GsFile openReadOnServer: (spec at: 'serverOptions').
   [connect := CCQuicConfiguration new identifier: identifier; label: 'Platform Users endpoint';
    nativeOptionsJson: file contents; libraryPath: (parameters at: 'library'); principal: (spec at: 'name');
-   allowedOperations: #(1 2 65534); applicationClass: CUUsersCommitGateApplicationFixture; yourself] ensure: [file close].
+   allowedOperations: #(1 2 3 4 5 6 65534); applicationClass: CUUsersCommitGateApplicationFixture; yourself] ensure: [file close].
   target := CRServiceBindingConfiguration new identifier: #users; label: 'Users'; serviceIdentifier: #users; yourself.
   connect bindings: {target}. services add: connect].
  configuration := CRRuntimeConfiguration new label: 'Native platform Users qualification'; services: services asArray; yourself.
@@ -46,19 +46,27 @@ phase = 'afterCommit' ifTrue: [
  client := parameters at: 'activeClient'. created := CUUsers allUsers select: [:user | user name = ((client at: 'prefix'), ':hold')].
  (created size = 1 and: [created first isSuperUser not]) ifFalse: [self error: 'Returned user is not visible in an independent Gem'].
  report at: 'independentGemRead' put: true; at: 'committedUser' put: created first name].
+phase = 'liveBeforeCommit' ifTrue: [
+ client := parameters at: 'activeClient'. created := CUUsers allUsers select: [:user | user creationName = ((client at: 'prefix'), ':lost-create')].
+ created isEmpty ifFalse: [self error: 'Live insertion visible before commit'].
+ report at: 'independentGemRead' put: true; at: 'heldUserVisible' put: false].
+phase = 'liveAfterCommit' ifTrue: [
+ client := parameters at: 'activeClient'. created := CUUsers allUsers select: [:user | user creationName = ((client at: 'prefix'), ':lost-create')].
+ (created size = 1 and: [created first userIdentifier notEmpty and: [created first creationIdentifier notEmpty]]) ifFalse: [self error: 'Recovery receipt must belong to exactly one committed User'].
+ report at: 'independentGemRead' put: true; at: 'oneCommittedIdentity' put: true].
 phase = 'verify' ifTrue: [
  root := UserGlobals at: key.
  created := CUUsers allUsers select: [:user | user name beginsWith: (parameters at: 'prefix')].
  expected := OrderedCollection new.
- (parameters at: 'clients') do: [:spec | expected add: (spec at: 'prefix'), ':hold'; add: (spec at: 'reconnectedName'); add: (spec at: 'prefix'), ':duplicate'; add: (spec at: 'prefix'), ':duplicate'].
+ (parameters at: 'clients') do: [:spec | expected add: (spec at: 'prefix'), ':hold'; add: (spec at: 'reconnectedName'); add: (spec at: 'prefix'), ':duplicate'; add: (spec at: 'prefix'), ':duplicate'; add: (spec at: 'prefix'), ':live-authority'; add: (spec at: 'prefix'), ':recovered-edit'].
  ((created collect: [:user | user name]) asArray sort = expected asArray sort) ifFalse: [self error: 'Only committed platform calls must persist, without replay'].
  (root at: #originalUsers) do: [:user | (CUUsers allUsers identityIncludes: user) ifFalse: [self error: 'Original user missing']].
  hosts := runtime nativeHosts values select: [:host | ((runtime publications at: host workerIdentifier) serviceHandleForIdentifier: #users) notNil].
  (hosts size = 1 and: [hosts first class == CRGemStoneWorkerHost]) ifFalse: [self error: 'Configured default worker required'].
- samples := hosts first executionMetrics samples select: [:sample | sample workUnitClass == CUUsersCommitGateMessageFixture].
+ samples := hosts first executionMetrics samples select: [:sample | sample workUnitClass == CUCreateLiveUserGateWork].
  (samples notEmpty and: [samples allSatisfy: [:sample | sample completionRecordingOutcome = #recorded]]) ifFalse: [self error: 'Commit completion evidence missing'].
- (hosts first failures asArray anySatisfy: [:failure | failure errorMessage includesSubstring: 'Qualification failure after Users insertion.']) ifFalse: [self error: 'Post-insertion rollback evidence missing'].
- report at: 'lookupSamples' put: ((hosts first executionMetrics samples select: [:sample | sample workUnitClass == CUGetUserMessageWork]) collect: [:sample |
+ (hosts first failures asArray anySatisfy: [:failure | failure errorMessage includesSubstring: 'Qualification failure after live Users insertion.']) ifFalse: [self error: 'Post-insertion rollback evidence missing'].
+ report at: 'lookupSamples' put: ((hosts first executionMetrics samples select: [:sample | sample workUnitClass == CUReadLiveUserWork]) collect: [:sample |
   (sample isSuccessful and: [sample transactionOutcome = #committed and: [sample completionRecordingOutcome = #recorded]]) ifFalse: [self error: 'Lookup did not use committed Runtime completion'].
   {sample isSuccessful. sample transactionOutcome asString. sample completionRecordingOutcome asString}]) asArray.
  (report at: 'lookupSamples') isEmpty ifTrue: [self error: 'No authoritative lookup execution evidence'].

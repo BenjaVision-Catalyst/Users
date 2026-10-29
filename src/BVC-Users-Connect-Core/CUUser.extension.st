@@ -14,3 +14,9 @@ CUUser >> descriptionSuperUser [
 CUUser >> magritteDescription [
  ^ MAContainer withAll: {self descriptionName. self descriptionSuperUser}
 ]
+
+{ #category : '*BVC-Users-Connect-Core' }
+CUUser >> readOnlyDescription: description [
+ (description respondsTo: #readOnly:) ifTrue: [description readOnly: true] ifFalse: [description readonly: true].
+ ^ description
+]
