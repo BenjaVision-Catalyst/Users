@@ -15,9 +15,13 @@ class BufferedDiagnostics(unittest.TestCase):
         self.samples=[dict(sample=i,millis=t,snapshotStartedMillis=t,snapshotFinishedMillis=t+1,hookFinishedMillis=t+2,
             feeds=[dict(pending=3,watched=3,publisher=True)]*2,publishers=2,native={'1':4,'8':400},
             connectStatistics=dict(callPeak=12,copyPeak=400),driveLimits=dict(calls=128,bytes=65536,millis=5)) for i,t in [(1,100),(2,600)]]
+        self.timings=dict(worker='worker',rows=[dict(sequence=1,localTimings=dict(outerCommitStartedMillis=10,
+            outerCommitFinishedMillis=20,outerCommitOutcome='committed',resultFinalizationStartedMillis=21,
+            resultFinalizationFinishedMillis=22,resultFinalizationOutcome='returned'))],lastSequence=1,maximumRows=50000)
     def run_capture(self):
         (self.base/'sampler-export.json').write_text(json.dumps(self.export))
         for sample in self.samples:(self.base/f"native-{sample['sample']}.json").write_text(json.dumps(sample))
+        (self.base/'worker-local-timings.json').write_text(json.dumps(self.timings))
         return validate_buffered_diagnostics(self.base,self.profiles)
     def test_checks_capacity_and_stalled_retention_after_export(self):
         result=self.run_capture()
@@ -57,6 +61,15 @@ class BufferedDiagnostics(unittest.TestCase):
     def test_invalid_sample_time_is_rejected(self):
         self.samples[1]['snapshotFinishedMillis']=599
         with self.assertRaisesRegex(ValueError,'snapshot timing'):self.run_capture()
+    def test_local_timing_gap_is_rejected(self):
+        self.timings['rows'][0]['sequence']=2
+        with self.assertRaisesRegex(ValueError,'timing sequence gap'):self.run_capture()
+    def test_premature_finalization_is_rejected(self):
+        self.timings['rows'][0]['localTimings']['resultFinalizationStartedMillis']=19
+        with self.assertRaisesRegex(ValueError,'preceded outer commit'):self.run_capture()
+    def test_incomplete_or_reversed_timing_is_rejected(self):
+        self.timings['rows'][0]['localTimings'].pop('outerCommitOutcome')
+        with self.assertRaisesRegex(ValueError,'Incomplete or reversed'):self.run_capture()
 
 
 if __name__=='__main__':unittest.main()

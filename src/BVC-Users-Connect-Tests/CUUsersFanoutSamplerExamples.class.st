@@ -46,6 +46,46 @@ CUUsersFanoutSamplerExamples >> testExportRequiresRegisteredOwner [
 ]
 
 { #category : 'tests' }
+CUUsersFanoutSamplerExamples >> testLocalTimingGapsAndOverflowAreExplicit [
+ <gtExample>
+ <return: #CUUsersFanoutMemoryFixture>
+ | fixture metrics sample |
+ fixture := CUUsersFanoutMemoryFixture new initializeDiagnostics; yourself.
+ metrics := CRWorkUnitExecutionMetrics new maxSamples: 1; yourself.
+ 2 timesRepeat: [metrics recordWorkUnitClass: CRIdleWorkUnit durationMillis: 1 endMillis: 2 isSuccessful: true].
+ self should: [fixture captureLocalTimingsFrom: metrics workerIdentifier: 'worker'] raise: Error.
+ self assert: (fixture instVarNamed: 'samplingFailure') equals: 'Worker-local timing sequence gap'.
+ fixture initializeDiagnostics. metrics := CRWorkUnitExecutionMetrics new.
+ sample := metrics recordWorkUnitClass: CRIdleWorkUnit durationMillis: 1 endMillis: 2 isSuccessful: true.
+ fixture instVarNamed: 'timingRows' put: (OrderedCollection new addAll: (Array new: fixture maximumTimingRows); yourself).
+ self should: [fixture captureLocalTimingsFrom: metrics workerIdentifier: 'worker'] raise: Error.
+ self assert: (fixture instVarNamed: 'samplingFailure') equals: 'Worker-local timing buffer exhausted'.
+ ^ fixture
+]
+
+{ #category : 'tests' }
+CUUsersFanoutSamplerExamples >> testLocalTimingsAreCopiedOnceAndExportedAfterWork [
+ <gtExample>
+ <return: #CUUsersFanoutMemoryFixture>
+ | fixture metrics sample announcer rows |
+ fixture := CUUsersFanoutMemoryFixture new initializeDiagnostics; yourself.
+ metrics := CRWorkUnitExecutionMetrics new.
+ sample := metrics recordWorkUnitClass: CRIdleWorkUnit durationMillis: 3 endMillis: 10 isSuccessful: true.
+ sample localTimings: (Dictionary new at: #outerCommitStartedMillis put: 11; at: #outerCommitFinishedMillis put: 24; yourself).
+ fixture captureLocalTimingsFrom: metrics workerIdentifier: 'worker'.
+ sample localTimings: (Dictionary new at: #outerCommitStartedMillis put: 99; yourself).
+ fixture captureLocalTimingsFrom: metrics workerIdentifier: 'worker'.
+ self assert: fixture writes isEmpty.
+ announcer := CRAnnouncer new. fixture registerExportWith: announcer.
+ announcer announce: CRWorkerServicesUninstallingAnnouncement new.
+ self assert: fixture writes first first equals: 'worker-local-timings.json'.
+ rows := fixture writes first second at: 'rows'.
+ self assert: rows size equals: 1.
+ self assert: ((rows first at: 'localTimings') at: #outerCommitStartedMillis) equals: 11.
+ ^ fixture
+]
+
+{ #category : 'tests' }
 CUUsersFanoutSamplerExamples >> testOverflowIsReportedWithoutDroppingRetainedSamples [
  <gtExample>
  <return: #CUUsersFanoutMemoryFixture>

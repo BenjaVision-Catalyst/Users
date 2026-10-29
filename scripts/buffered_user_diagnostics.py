@@ -9,6 +9,26 @@ def percentile(values, fraction):
     return values[max(0, math.ceil(len(values)*fraction)-1)]
 
 
+def validate_local_timings(output):
+    evidence=json.loads((Path(output)/'worker-local-timings.json').read_text())
+    rows=evidence['rows']
+    if not evidence['worker'] or not 0<len(rows)<=evidence['maximumRows']<=50000:
+        raise ValueError('Invalid worker-local timing bound or owner')
+    if [r['sequence'] for r in rows]!=list(range(1,evidence['lastSequence']+1)):
+        raise ValueError('Worker-local timing sequence gap')
+    for row in rows:
+        times=row['localTimings'] or {}
+        for phase in ('outerCommit','resultFinalization'):
+            keys=[phase+suffix for suffix in ('StartedMillis','FinishedMillis','Outcome')]
+            if any(key in times for key in keys):
+                if not all(key in times for key in keys) or times[keys[1]]<times[keys[0]]:
+                    raise ValueError('Incomplete or reversed worker-local timing')
+        if 'resultFinalizationStartedMillis' in times and 'outerCommitFinishedMillis' in times:
+            if times['resultFinalizationStartedMillis']<times['outerCommitFinishedMillis']:
+                raise ValueError('Result finalization preceded outer commit')
+    return dict(worker=evidence['worker'],rows=len(rows),lastSequence=evidence['lastSequence'],sequenceComplete=True)
+
+
 def validate_buffered_diagnostics(output, profiles):
     output=Path(output)
     exported=json.loads((output/'sampler-export.json').read_text())
@@ -59,5 +79,5 @@ def validate_buffered_diagnostics(output, profiles):
             slowFeedsRetainingStateAfterHealthyConvergence=pending,
             samplerSnapshotMillis={key:percentile(durations,q) for key,q in [('p50',.5),('p95',.95),('p99',.99),('max',1)]})
     durations=[s['hookFinishedMillis']-s['snapshotStartedMillis'] for s in samples]
-    return dict(exported,snapshotMillis={key:percentile(durations,q) for key,q in [('p50',.5),('p95',.95),('p99',.99),('max',1)]},
+    return dict(exported,localTimings=validate_local_timings(output),snapshotMillis={key:percentile(durations,q) for key,q in [('p50',.5),('p95',.95),('p99',.99),('max',1)]},
         allProfilesHaveCapacityAndSlowRetentionEvidence=True,exportAfterTimedWorkload=True)

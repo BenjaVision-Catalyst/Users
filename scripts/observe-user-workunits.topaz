@@ -24,6 +24,7 @@ stopped := false.
   stamp := host generation.
   (previous > 0 and: [(generations at: key) ~= stamp]) ifTrue: [self error: 'Observed worker generation changed'].
   incoming do: [:sample | | row |
+   sample localTimings isNil ifFalse: [self error: 'Worker-local timing escaped into the durable journal'].
    sample sequence = (previous + 1) ifFalse: [self error: 'Durable execution sequence gap; evidence cannot be reconstructed'].
    previous := sample sequence.
    row := Dictionary new at: 'worker' put: key; at: 'host' put: host portOrResourceNameList first asString;

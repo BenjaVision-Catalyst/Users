@@ -15,11 +15,33 @@ Class {
 		'samplingFailure',
 		'sampleAttempts',
 		'skippedNativeSamples',
-		'startupSkips'
+		'startupSkips',
+		'diagnosticMetrics',
+		'timingRows',
+		'timingCursor',
+		'timingWorkerIdentifier'
 	],
 	#category : 'BVC-Users-Connect-Tests',
 	#package : 'BVC-Users-Connect-Tests'
 }
+
+{ #category : 'qualification' }
+CUUsersFanoutApplicationFixture >> captureLocalTimingsFrom: metrics workerIdentifier: identifier [
+ | incoming |
+ (diagnosticMetrics notNil and: [diagnosticMetrics ~~ metrics or: [timingWorkerIdentifier ~= identifier]])
+  ifTrue: [self error: 'Sampler worker changed'].
+ diagnosticMetrics := metrics. timingWorkerIdentifier := identifier copy.
+ incoming := metrics samplesAfterSequence: timingCursor.
+ incoming do: [:sample | | row |
+  sample sequence = (timingCursor + 1) ifFalse: [samplingFailure := 'Worker-local timing sequence gap'. self error: samplingFailure].
+  timingRows size >= self maximumTimingRows ifTrue: [samplingFailure := 'Worker-local timing buffer exhausted'. self error: samplingFailure].
+  row := Dictionary new at: 'sequence' put: sample sequence; at: 'workUnitClass' put: sample workUnitClass name asString;
+   at: 'durationMillis' put: sample durationMillis; at: 'endMillis' put: sample endMillis;
+   at: 'successful' put: sample isSuccessful; at: 'transactionOutcome' put: sample transactionOutcome;
+   at: 'completionRecordingOutcome' put: sample completionRecordingOutcome; at: 'localTimings' put: sample localTimings; yourself.
+  timingRows add: (self copyDiagnostic: row). timingCursor := sample sequence].
+ timingCursor = metrics lastSequenceNumber ifFalse: [samplingFailure := 'Worker-local timing head mismatch'. self error: samplingFailure]
+]
 
 { #category : 'qualification' }
 CUUsersFanoutApplicationFixture >> configure: configuration [
@@ -45,6 +67,10 @@ CUUsersFanoutApplicationFixture >> exportDiagnostics [
  Processor activeProcess == diagnosticOwner ifFalse: [self error: 'Sampler export requires its Runtime owner'].
  exported ifTrue: [^ self]. exported := true.
  started := CRPlatform current currentMillis.
+ diagnosticMetrics ifNotNil: [
+  self captureLocalTimingsFrom: diagnosticMetrics workerIdentifier: timingWorkerIdentifier.
+  self writeDiagnostic: (Dictionary new at: 'worker' put: timingWorkerIdentifier; at: 'rows' put: timingRows asArray;
+   at: 'lastSequence' put: timingCursor; at: 'maximumRows' put: self maximumTimingRows; yourself) name: 'worker-local-timings.json'].
  samples do: [:sample | self writeDiagnostic: sample name: 'native-', (sample at: 'sample') asString, '.json'].
  finished := CRPlatform current currentMillis.
  report := Dictionary new at: 'completed' put: true; at: 'mode' put: 'buffered';
@@ -61,13 +87,20 @@ CUUsersFanoutApplicationFixture >> initializeDiagnostics [
  nextSample := 0. sampleNumber := 0. samples := OrderedCollection new.
  diagnosticOwner := nil. exportRegistered := false. exported := false.
  samplingFailure := nil. sampleAttempts := 0. skippedNativeSamples := 0.
- startupSkips := OrderedCollection new
+ startupSkips := OrderedCollection new.
+ diagnosticMetrics := nil. timingRows := OrderedCollection new. timingCursor := 0. timingWorkerIdentifier := nil
 ]
 
 { #category : 'qualification' }
 CUUsersFanoutApplicationFixture >> maximumSamples [
  "500 ms samples within the qualification controller's 30-minute lease."
  ^ 3600
+]
+
+{ #category : 'qualification' }
+CUUsersFanoutApplicationFixture >> maximumTimingRows [
+ "Same bound as the qualification's read-only durable journal observer."
+ ^ 50000
 ]
 
 { #category : 'qualification' }
@@ -104,6 +137,7 @@ CUUsersFanoutApplicationFixture >> progressUsing: service [
    at: 'watched' put: (feed instVarNamed: 'identities') size; at: 'pending' put: (feed instVarNamed: 'pending') size;
    at: 'pendingRevisions' put: (((feed instVarNamed: 'pending') values collect: #revision) asArray); yourself]].
  metrics := worker workerHandle statistics at: #workUnitExecution.
+ self captureLocalTimingsFrom: metrics workerIdentifier: worker workerHandle workerIdentifier asString.
  statistics := Dictionary new. (service status at: #statistics) keysAndValuesDo: [:key :value | statistics at: key asString put: value].
  sample := Dictionary new at: 'sample' put: sampleNumber + 1; at: 'millis' put: now; at: 'native' put: counters;
   at: 'feeds' put: rows asArray; at: 'publishers' put: (service instVarNamed: 'pushSources') size;
