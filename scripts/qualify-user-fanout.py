@@ -243,7 +243,9 @@ Smalltalk globals at: {quote(owner)} asSymbol put: run. run snapshot''')
             time.sleep(1); sample_memory(); marker(directory, 'burstB-go')
             wait_files([directory / f'burstB-{s}.json' for s in range(shards)])
             stalled_start_millis = time.time_ns()/1e6
-            time.sleep(1); sample_memory()
+            # Allow buffered 500 ms samples to observe retained slow feeds even
+            # when synchronous completion commits delay the owning worker.
+            time.sleep(3); sample_memory()
             stalled_end_millis = time.time_ns()/1e6
             marker(directory, 'resume')
             wait_files([directory / f'offline-ready-{s}.json' for s in range(shards)])
