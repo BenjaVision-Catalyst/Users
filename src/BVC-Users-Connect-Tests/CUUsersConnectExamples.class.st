@@ -27,6 +27,24 @@ CUUsersConnectExamples >> testApplicationSelectsConfiguredLookupAndCreation [
  ^ application
 ]
 
+{ #category : 'push updates' }
+CUUsersConnectExamples >> testChangeFeedCoalescesAndRequiresAcknowledgment [
+ <gtExample>
+ <return: #CUUsersChangeFeed>
+ | feed state ticket |
+ feed := CUUsersChangeFeed new configure: (CUUsersConfiguration new maximumUsersPerFeed: 1; yourself); yourself.
+ feed register: 'id' revision: 1.
+ state := CULiveUserState new name: 'second'; userIdentifier: 'id'; revision: 2; outcome: 'current'; yourself.
+ feed publish: state. state := CULiveUserState new name: 'third'; userIdentifier: 'id'; revision: 3; outcome: 'current'; yourself. feed publish: state.
+ self should: [feed register: 'other' revision: 1] raise: Error.
+ ticket := feed beginWait.
+ self assert: (feed peekFor: ticket) revision equals: 3.
+ self should: [feed beginWait] raise: Error.
+ feed acknowledge: 'id' revision: 2. self assert: (feed peekFor: ticket) revision equals: 3.
+ feed acknowledge: 'id' revision: 3. self assert: (feed peekFor: ticket) isNil.
+ feed close. self assert: (feed peekFor: ticket) outcome equals: 'closed'. feed endWait: ticket. ^ feed
+]
+
 { #category : 'tests' }
 CUUsersConnectExamples >> testClientBeforeReadinessDoesNotCreateAUser [
  <gtExample>
@@ -51,6 +69,21 @@ CUUsersConnectExamples >> testConfiguredBindingRetainsUsersTransactionAndCapabil
  envelope := CUCreateUserMessageWork new asEnvelope resultCompletion: completion; yourself.
  self assert: completion afterCommit. self assert: completion afterFinalization.
  self deny: CUCreateUserMessageWork allowsConflictReplay. ^ binding
+]
+
+{ #category : 'push updates' }
+CUUsersConnectExamples >> testFeedResponseWaitsForStateInsteadOfReadingUsers [
+ <gtExample>
+ <return: #CUUsersFeedResponse>
+ | feed response state schema |
+ schema := CCObjectStateSchema forObject: (CULiveUserState outcome: '').
+ feed := CUUsersChangeFeed new configure: CUUsersConfiguration new; yourself.
+ feed register: 'id' revision: 1.
+ response := CUUsersFeedResponse new attach: feed schema: schema; yourself.
+ self deny: response isReady.
+ state := CULiveUserState new name: 'Changed'; userIdentifier: 'id'; revision: 2; outcome: 'current'; yourself.
+ feed publish: state. self assert: response isReady.
+ self assert: (schema decode: response response first) name equals: 'Changed'. ^ response
 ]
 
 { #category : 'tests - live objects' }
@@ -158,6 +191,21 @@ CUUsersConnectExamples >> testUnicodeUserDescriptionRoundTrip [
  self assert: result name equals: user name. self deny: result isSuperUser.
  self assert: schema revision equals: '742282f3bd6d47c824c6c12a2244dcb79ac5b13ba1d94aa4bd60b843608185cb'.
  ^ result
+]
+
+{ #category : 'push updates' }
+CUUsersConnectExamples >> testUsersBindingsExplicitlyPermitVolatileFinalization [
+ <gtExample>
+ <return: #CUUsersBinding>
+ | binding config declared |
+ self deny: CRWorkUnitResultCompletion new acceptsInMemoryFinalization.
+ self deny: CCObjectBinding new acceptsInMemoryFinalization.
+ binding := CUUsersObjectApplication new bindingFor: self configuration.
+ self assert: binding acceptsInMemoryFinalization. self assert: binding requiresTransaction.
+ config := self configuration allowedOperations: #(1 2 3 4 5 6 7 8 9 65534); yourself.
+ declared := CUUsersObjectApplication new bindingsFor: config.
+ self assert: (declared collect: #operation) equals: #(1 2 3 4 5 6 7 8 9).
+ self assert: (declared at: 8) class equals: CUUsersFeedBinding. ^ binding
 ]
 
 { #category : 'tests' }

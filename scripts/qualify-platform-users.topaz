@@ -20,7 +20,7 @@ phase = 'configure' ifTrue: [
   file := GsFile openReadOnServer: (spec at: 'serverOptions').
   [connect := CCQuicConfiguration new identifier: identifier; label: 'Platform Users endpoint';
    nativeOptionsJson: file contents; libraryPath: (parameters at: 'library'); principal: (spec at: 'name');
-   allowedOperations: #(1 2 3 4 5 6 65534); applicationClass: CUUsersCommitGateApplicationFixture; yourself] ensure: [file close].
+   idleMillis: 5; allowedOperations: #(1 2 3 4 5 6 7 8 9 65534); applicationClass: CUUsersCommitGateApplicationFixture; yourself] ensure: [file close].
   target := CRServiceBindingConfiguration new identifier: #users; label: 'Users'; serviceIdentifier: #users; yourself.
   connect bindings: {target}. services add: connect].
  configuration := CRRuntimeConfiguration new label: 'Native platform Users qualification'; services: services asArray; yourself.
@@ -36,7 +36,7 @@ phase = 'configure' ifTrue: [
  report at: 'configurationValid' put: true].
 phase = 'gate' ifTrue: [
  client := parameters at: 'activeClient'. gate := client at: 'output'.
- CRGemStoneRuntime duringTransaction: [CUUsersCommitGateMessageFixture gateDirectory: gate].
+ CRGemStoneRuntime duringTransaction: [CUUsersCommitGateMessageFixture gateDirectory: gate. runtime nativeHosts valuesDo: [:host | host executionMetrics maxSamples: 100000]].
  report at: 'trustedGateConfigured' put: true].
 phase = 'beforeCommit' ifTrue: [
  client := parameters at: 'activeClient'. created := CUUsers allUsers select: [:user | user name = ((client at: 'prefix'), ':hold')].
@@ -54,6 +54,37 @@ phase = 'liveAfterCommit' ifTrue: [
  client := parameters at: 'activeClient'. created := CUUsers allUsers select: [:user | user creationName = ((client at: 'prefix'), ':lost-create')].
  (created size = 1 and: [created first userIdentifier notEmpty and: [created first creationIdentifier notEmpty]]) ifFalse: [self error: 'Recovery receipt must belong to exactly one committed User'].
  report at: 'independentGemRead' put: true; at: 'oneCommittedIdentity' put: true].
+phase = 'quietBefore' ifTrue: [
+ hosts := runtime nativeHosts values select: [:host | ((runtime publications at: host workerIdentifier) serviceHandleForIdentifier: #users) notNil].
+ selected := hosts first executionMetrics samples count: [:sample | sample workUnitClass == CUReadLiveUserWork].
+ root := UserGlobals at: key.
+ CRGemStoneRuntime duringTransaction: [root at: #idleReadCount put: selected].
+ report at: 'readCount' put: selected].
+phase = 'quietAfter' ifTrue: [
+ hosts := runtime nativeHosts values select: [:host | ((runtime publications at: host workerIdentifier) serviceHandleForIdentifier: #users) notNil].
+ selected := hosts first executionMetrics samples count: [:sample | sample workUnitClass == CUReadLiveUserWork].
+ selected = ((UserGlobals at: key) at: #idleReadCount) ifFalse: [self error: 'Idle observers issued User reads'].
+ report at: 'readCount' put: selected; at: 'zeroIdleReads' put: true].
+phase = 'pushBeforeCommit' ifTrue: [
+ client := parameters at: 'activeClient'. created := CUUsers allUsers select: [:user | user name = ((client at: 'prefix'), ':push-held')].
+ created isEmpty ifFalse: [self error: 'Held edit visible before commit'].
+ report at: 'heldUpdateVisible' put: false].
+phase = 'pushAfterCommit' ifTrue: [
+ client := parameters at: 'activeClient'. created := CUUsers allUsers select: [:user | user creationName = ((client at: 'prefix'), ':push-original')].
+ (created size = 1 and: [created first revision >= 2]) ifFalse: [self error: 'Committed edit not visible'].
+ report at: 'committedUpdateVisible' put: true].
+phase = 'verifyPush' ifTrue: [
+ created := CUUsers allUsers select: [:user | user name beginsWith: (parameters at: 'prefix')].
+ expected := (parameters at: 'clients') collect: [:spec | (spec at: 'prefix'), ':push-reconnected'].
+ ((created collect: #name) asArray sort = expected asArray sort) ifFalse: [self error: 'Unexpected pushed Users store contents'].
+ hosts := runtime nativeHosts values select: [:host | ((runtime publications at: host workerIdentifier) serviceHandleForIdentifier: #users) notNil].
+ samples := hosts first executionMetrics samples.
+ selected := samples count: [:sample | sample workUnitClass == CUReadLiveUserWork].
+ selected <= ((parameters at: 'clients') size * 8) ifFalse: [self error: 'Unexpected read count; idle clients must not poll Users'].
+ report at: 'readAndProbeSamples' put: selected; at: 'noPeriodicReads' put: true.
+ selected := samples select: [:sample | sample workUnitClass == CUUsersFlushWork].
+ (selected notEmpty and: [selected allSatisfy: [:sample | sample isSuccessful and: [sample transactionOutcome = #committed and: [sample completionRecordingOutcome = #recorded]]]]) ifFalse: [self error: 'Push publication commit evidence missing'].
+ report at: 'committedPublications' put: selected size; at: 'expectedUsersPersisted' put: true].
 phase = 'verify' ifTrue: [
  root := UserGlobals at: key.
  created := CUUsers allUsers select: [:user | user name beginsWith: (parameters at: 'prefix')].

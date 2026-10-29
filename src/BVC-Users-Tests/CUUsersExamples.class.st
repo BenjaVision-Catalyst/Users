@@ -227,7 +227,7 @@ CUUsersExamples >> testNonAuthoritativeServiceCannotCreateUser [
   self deny: (users identityIncludes: user) ]
 ]
 
-{ #category : 'tests - loading' }
+{ #category : 'tests' }
 CUUsersExamples >> testProductionAndTestLoadGroupsAreSeparate [
  <gtExample>
  <return: #MetacelloVersion>
@@ -241,7 +241,7 @@ CUUsersExamples >> testProductionAndTestLoadGroupsAreSeparate [
  coreClasses := (((MCPackage named: 'BVC-Users-Core') snapshot definitions select: [:definition | definition isClassDefinition]) collect: [:definition | definition className asString]) asArray sorted.
  runtimeClasses := (((MCPackage named: 'BVC-Users-Runtime') snapshot definitions select: [:definition | definition isClassDefinition]) collect: [:definition | definition className asString]) asArray sorted.
  self assert: coreClasses equals: #('CUAmbiguousUserError' 'CULiveUserState' 'CUUser' 'CUUserChange' 'CUUserCreationError' 'CUUsers').
- self assert: runtimeClasses equals: #('CUCreateUserWorkUnit' 'CUGetUserWorkUnit' 'CUUsersCapability' 'CUUsersService' 'CUUsersWorkUnit').
+ self assert: runtimeClasses equals: #('CUCreateUserWorkUnit' 'CUGetUserWorkUnit' 'CUUsersCapability' 'CUUsersChangeFeed' 'CUUsersConfiguration' 'CUUsersFlushCompletion' 'CUUsersFlushWork' 'CUUsersService' 'CUUsersWorkUnit').
  ^ version
 ]
 

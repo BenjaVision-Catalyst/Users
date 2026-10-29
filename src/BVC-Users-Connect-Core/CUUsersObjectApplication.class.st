@@ -8,7 +8,12 @@ Class {
 	#package : 'BVC-Users-Connect-Core'
 }
 
-{ #category : 'configuration' }
+{ #category : 'push updates' }
+CUUsersObjectApplication >> bindingClass [
+ ^ CUUsersBinding
+]
+
+{ #category : 'push updates' }
 CUUsersObjectApplication >> bindingFor: configuration [
  | target validation |
  target := configuration bindingNamed: #users.
@@ -17,17 +22,20 @@ CUUsersObjectApplication >> bindingFor: configuration [
  validation isValid ifFalse: [self error: 'Invalid Users service binding.'].
  (target isRemote and: [configuration principal ~= target runtimeIdentifier or: [configuration identifier ~= target connectServiceIdentifier]])
   ifTrue: [self error: 'Users binding must select this configured Connect peer and service.'].
- ^ CCObjectBinding new operation: 1 request: CUUser new result: CUUser new
+ ^ self bindingClass new operation: 1 request: CUUser new result: CUUser new
   work: self messageWorkClass service: target serviceIdentifier peer: configuration principal
 ]
 
-{ #category : 'live users' }
+{ #category : 'push updates' }
 CUUsersObjectApplication >> bindingsFor: configuration [
  | result creation |
  creation := self bindingFor: configuration. result := OrderedCollection with: creation.
  (configuration allowedOperations includes: 2) ifTrue: [result add: (self lookupBindingFor: configuration)].
  self liveWorkClasses do: [:work |
-  (configuration allowedOperations includes: work operation) ifTrue: [result add: (CCObjectStateBinding new operation: work operation request: CUUserChange new result: (CULiveUserState outcome: '') work: work service: (configuration bindingNamed: #users) serviceIdentifier peer: creation localIdentity)]].
+  (configuration allowedOperations includes: work operation) ifTrue: [result add: (CUUsersStateBinding new operation: work operation request: CUUserChange new result: (CULiveUserState outcome: '') work: work service: (configuration bindingNamed: #users) serviceIdentifier peer: creation localIdentity)]].
+ #(7 8 9) do: [:code | (configuration allowedOperations includes: code) ifTrue: [
+  result add: ((code = 8 ifTrue: [CUUsersFeedBinding] ifFalse: [CUUsersStateBinding]) new operation: code request: CUUserChange new result: (CULiveUserState outcome: '')
+   work: ({CUSubscribeUserWork. CUReceiveUserChangesWork. CUUnsubscribeUserWork} at: code - 6) service: (configuration bindingNamed: #users) serviceIdentifier peer: creation localIdentity)]].
  ^ result asArray
 ]
 

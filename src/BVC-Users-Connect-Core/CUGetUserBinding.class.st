@@ -8,6 +8,11 @@ Class {
 	#package : 'BVC-Users-Connect-Core'
 }
 
+{ #category : 'push updates' }
+CUGetUserBinding >> acceptsInMemoryFinalization [
+ ^ true
+]
+
 { #category : 'object messaging' }
 CUGetUserBinding >> statusForResult: result [
  result ifNil: [^ 404].

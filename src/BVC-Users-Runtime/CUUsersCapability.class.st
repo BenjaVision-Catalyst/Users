@@ -33,6 +33,12 @@ CUUsersCapability >> createUser: aUser [
  ^ service createUser: aUser
 ]
 
+{ #category : 'push updates' }
+CUUsersCapability >> drainChanges [
+ (service isCurrentResultEpoch: epoch) ifFalse: [CRCapabilityDeniedException signal: 'Users capability has expired.'].
+ ^ service drainChanges
+]
+
 { #category : 'users api' }
 CUUsersCapability >> getUser: exactName [
  (service isCurrentResultEpoch: epoch) ifFalse: [CRCapabilityDeniedException signal: 'Users capability has expired.'].

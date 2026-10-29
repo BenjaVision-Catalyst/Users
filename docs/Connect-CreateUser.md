@@ -5,7 +5,7 @@ Default Users loading remains Core and Runtime. `tests-connect` adds the optiona
 qualification fixtures; production uses `CUUsersObjectApplication`.
 
 Configure a local authoritative `#users` service and a Connect `#users` binding.
-Enable operations `#(1 2 3 4 5 6 65534)` for both snapshot and live clients; existing
+Enable operations `#(1 2 3 4 5 6 7 8 9 65534)` for both snapshot and live clients; existing
 configurations with only 1/2 remain supported. The configured peer principal is
 bound to the pinned transport identity. A label is not an account credential.
 Connect and Users use the existing configured default transactional worker,
@@ -48,14 +48,45 @@ Server-owned fields are read-only in live descriptions. The transfer constructs
 inert installed values before applying a state; peer bytes never choose code,
 classes, selectors or destinations. UI generation itself is future work.
 
-A bounded coordinator per scope sends full-state refreshes over the existing
-connection. Defaults are 64 retained objects and a one-second refresh interval.
-The maximum is configurable up to 256, and the interval has a 20ms minimum.
-`configureLiveUsers` / `ConfigureLiveUsers` applies policy changes live. Disable
-automatic refresh and use `synchronizeNow` / `RefreshLiveUsers` for explicit control.
-Swift API instances sharing a ConnectClient share the same policy and cache.
-The host remains responsible for connection lifecycle/reconnect and retaining
-observed User objects. This first slice uses polling, without server push/history.
+The authority pushes full-state changes through one server-held change receive per
+client scope. Subscriptions are by stable identity, with pending changes coalesced
+to the latest state for each User. No periodic User reads occur while idle. This
+uses Connect's existing bounded deferred request/reply path; the receive is renewed
+after an event or a lease heartbeat. It does not add unsolicited native frames,
+another socket, a broker, or an event history. Acknowledgment removes a queued
+revision only if it is still the acknowledged revision; later changes remain queued.
+
+The service stages identities and submits one coalesced publication WorkUnit over
+its existing Runtime route. That work rereads authoritative state. Its completion
+updates feeds only after Runtime finalization and, in GemStone, confirmed commit.
+Staging can survive a failed body without leaking that body's values: the follow-up
+read sees the rolled-back revision and unchanged states are suppressed. Native I/O
+still runs only on Connect's original owner. Held receives use the existing idle
+schedule and do not continuously request immediate progress.
+
+`CUUsersConfiguration` adds maximumFeeds (default16), maximumUsersPerFeed (256),
+receiveWaitMillis (15000) and feedLeaseMillis (60000). Configuration validation
+bounds these, and existing effective-copy/reconciliation applies changes. A service
+reconfiguration closes old feeds; clients resubscribe and resnapshot. Existing
+plain CRServiceConfiguration Users deployments retain these defaults. Feed state
+is activation-local, expires after abandonment, and is cleared on stop. It never
+enters the persistent Users model or durable work queue.
+
+Notifications follow mutations through the configured Users API. Direct repository
+writes outside that API, deletion notifications and cross-authority change capture
+remain future work. The existing default single-destination route is retained;
+GemStone qualification colocates Connect and Users on the configured default worker,
+as required by the existing activation-local reply path.
+
+Client capacity defaults to64 retained objects (maximum256). The existing
+refreshInterval policy now controls local edit/recovery checks, with a one-second
+default and 20ms minimum; it does not schedule remote reads. Disable automaticRefresh
+for explicit `synchronizeNow` / `RefreshLiveUsers` control. Policy changes apply
+live. Swift APIs sharing a ConnectClient share policy/cache. The host owns its
+connection/reconnect and retains observed User objects. Reconnect obtains fresh
+agreements and subscription snapshots before receiving further changes. Unknown
+creation receipts are checked once per connection or explicit synchronization,
+without automatically repeating creation.
 
 Edits retain their base revision. A matching revision permits an update; a conflict
 returns current state without overwriting the draft. `resolveConflict(keepLocal:)`
@@ -74,7 +105,7 @@ last for the User's lifetime; deletion recovery and general operation journals a
 not provided. The original one-shot operation remains terminal after an unknown
 result; subsequent recovery is visible on the User.
 
-All results, including recovery, use Runtime's existing afterFinalization and
+GemStone results, including recovery, use Runtime's existing afterFinalization and
 afterCommit completion. No successful response precedes successful outer commit
 and completion recording. Rollback or transport loss cannot manufacture success.
 Local admission is not durable success. Default error reporting is provided;
@@ -87,10 +118,16 @@ not account/tenant authorization or a production-complete security model.
 
 ## Protocol and compatibility
 
-Operations 3/4/5/6 are live create/read/update/recover. Their installed request and
+Operations 3/4/5/6 are live create/read/update/recover; 7/8/9 subscribe/receive/unsubscribe. Their installed request and
 state descriptions use the additive state-v2 profile. Current Quinn transport,
 ALPN, native ABI and 4080-byte bound are unchanged; no CapTP, Cap'n Proto or DDS
 runtime is required. See Connect's `conformance/object-messaging.md` for manifests.
+GT is also an authoritative server using its existing in-memory execution strategy.
+Users bindings explicitly opt in to volatile finalization; ordinary transactional
+completions remain denied that option. GemStone retains its commit/evidence checks.
+GT does not claim database persistence or rollback: existing Runtime memory semantics
+on failure remain unchanged. No private GT management connection is introduced.
+
 The profile supports bounded scalar fields, not graph/4, relations, distributed
 reference collection or remote code installation.
 
@@ -131,3 +168,14 @@ Direct Rowan loading and physical iOS hardware execution remain unqualified.
 
 See [live User qualification](../conformance/live-users-2026-10-29.json) for the
 three-platform run, native persistence checks, source verification and build scope.
+
+For the dedicated push suite, add `--push-only`; use `--authority gt` to run the
+same native clients against a configured GT authority. GT's owner creates/stops
+its Runtime inside CCNativeMcpLease. GemStone's controller owns its managed Runtime.
+Both wait outside GT for the released/restored gate before joining. The suite checks
+held-update delivery, conflicts, reconnect resnapshot and resumed push, zero reads during idle windows and bounded
+explicit/readiness reads, and cleanup. GemStone additionally verifies
+rollback suppression and independent-Gem visibility before/after commit.
+
+See [pushed User qualification](../conformance/pushed-users-2026-10-29.json) for
+both authorities, idle-window measurements, commit/rollback checks and source proof.

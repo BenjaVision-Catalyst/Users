@@ -5,9 +5,9 @@ Class {
 	#package : 'BVC-Users-Connect-Tests'
 }
 
-{ #category : 'configuration' }
+{ #category : 'push updates' }
 CUUsersCommitGateApplicationFixture >> liveWorkClasses [
- ^ {CUCreateLiveUserGateWork. CUReadLiveUserWork. CUUpdateLiveUserWork. CURecoverLiveUserWork}
+ ^ {CUCreateLiveUserGateWork. CUReadLiveUserWork. CUUpdateLiveUserGateWork. CURecoverLiveUserWork}
 ]
 
 { #category : 'configuration' }

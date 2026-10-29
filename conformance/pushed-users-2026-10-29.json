@@ -1,0 +1,245 @@
+{
+  "date": "2026-10-29",
+  "passed": true,
+  "scope": "Swift macOS, iOS Simulator and Unreal UE5.8 Mac arm64 to GemStone and GT authorities",
+  "transport": {
+    "nativeABI": 1,
+    "alpn": "catalyst-connect/1",
+    "nativeSourceChanged": false,
+    "unsolicitedFramesAdded": false,
+    "requestRevision": "71f6a5241e5dea62f3bc651e8a1b3aafe8ddfcaae9eda7e147807c865adadbf1",
+    "stateRevision": "6f4dc62ac9dfdcb45922152eb2f18d591222476b2ca5b1ccfc34676065fb4985"
+  },
+  "mechanism": "One server-held change receive per client scope; coalesced state by identity; acknowledgment; lease heartbeat; existing deferred replies and Runtime route/finalization",
+  "operations": {
+    "7": "subscribe",
+    "8": "receive changes",
+    "9": "unsubscribe"
+  },
+  "tests": {
+    "gtExamples": 106,
+    "gtFailures": 0,
+    "nativeGemStoneSelectedExamples": 7,
+    "swiftSchemaTests": 5,
+    "swiftSchemaFailures": 0,
+    "ueEditorBuild": "passed",
+    "ueGameBuild": "passed",
+    "iosArm64UnsignedDeviceBuild": "passed; not executed on hardware"
+  },
+  "reference": "https://github.com/BenjaVision-Catalyst/catalyst-users/blob/main/conformance/pushed-users-2026-10-29.json",
+  "gemstone": {
+    "runtime": "platform_users_4b592c676f8c",
+    "clients": {
+      "swift-macos": {
+        "passed": true,
+        "pushedAfterFinalization": true,
+        "stableIdentity": true,
+        "reconnect": true,
+        "conflictPreservesDraft": true,
+        "rollbackSuppressed": true
+      },
+      "swift-ios": {
+        "passed": true,
+        "pushedAfterFinalization": true,
+        "stableIdentity": true,
+        "reconnect": true,
+        "conflictPreservesDraft": true,
+        "rollbackSuppressed": true
+      },
+      "unreal": {
+        "passed": true,
+        "pushedAfterFinalization": true,
+        "stableIdentity": true,
+        "reconnect": true,
+        "conflictPreservesDraft": true,
+        "rollbackSuppressed": true
+      }
+    },
+    "idleWindows": [
+      {
+        "phase": "quietAfter",
+        "runtime": "platform_users_4b592c676f8c",
+        "readCount": 4,
+        "zeroIdleReads": true
+      },
+      {
+        "phase": "quietAfter",
+        "runtime": "platform_users_4b592c676f8c",
+        "readCount": 12,
+        "zeroIdleReads": true
+      },
+      {
+        "phase": "quietAfter",
+        "runtime": "platform_users_4b592c676f8c",
+        "readCount": 20,
+        "zeroIdleReads": true
+      }
+    ],
+    "store": [
+      {
+        "readAndProbeSamples": 24,
+        "committedPublications": 15,
+        "expectedUsersPersisted": true,
+        "phase": "verifyPush",
+        "runtime": "platform_users_4b592c676f8c",
+        "noPeriodicReads": true
+      }
+    ],
+    "cleanup": [
+      {
+        "removedUsers": 3,
+        "originalUsersPreserved": true,
+        "phase": "cleanup",
+        "runtime": "platform_users_4b592c676f8c",
+        "gateRestored": true
+      }
+    ],
+    "gate": {
+      "servers": 1,
+      "originalRegistriesRestored": true,
+      "preexistingCalls": 1,
+      "state": "released",
+      "quiescenceElapsedMillis": 515,
+      "refusedCalls": 0
+    },
+    "developmentRuntimePreserved": true
+  },
+  "gt": {
+    "runtime": "platform_users_2a4c37c50d72",
+    "clients": {
+      "swift-macos": {
+        "passed": true,
+        "pushedAfterFinalization": true,
+        "stableIdentity": true,
+        "reconnect": true,
+        "conflictPreservesDraft": true,
+        "rollbackSuppressed": false
+      },
+      "swift-ios": {
+        "passed": true,
+        "pushedAfterFinalization": true,
+        "stableIdentity": true,
+        "reconnect": true,
+        "conflictPreservesDraft": true,
+        "rollbackSuppressed": false
+      },
+      "unreal": {
+        "passed": true,
+        "pushedAfterFinalization": true,
+        "stableIdentity": true,
+        "reconnect": true,
+        "conflictPreservesDraft": true,
+        "rollbackSuppressed": false
+      }
+    },
+    "authority": {
+      "zeroIdleReads": true,
+      "readSamples": 18,
+      "createdUsers": [
+        "platform_users_2a4c37c50d72_user_swift-macos:push-reconnected",
+        "platform_users_2a4c37c50d72_user_swift-ios:push-reconnected",
+        "platform_users_2a4c37c50d72_user_unreal:push-reconnected"
+      ],
+      "idleChecks": 3,
+      "buffersReleased": true,
+      "runtimeUnregistered": true,
+      "runtimeStopped": true,
+      "inMemoryFinalizations": 12,
+      "volatileAuthority": true,
+      "createdFromConfiguration": true,
+      "library": "/opt/git/BenjaVisionPro/catalyst-workspace/recovery/connect-fresh-stone-interop-20261028/native-build/release/libcatalyst_connect.dylib"
+    },
+    "gate": {
+      "servers": 1,
+      "originalRegistriesRestored": true,
+      "preexistingCalls": 1,
+      "state": "released",
+      "quiescenceElapsedMillis": 353,
+      "refusedCalls": 0
+    },
+    "developmentRuntimePreserved": true
+  },
+  "sourceVerification": {
+    "gtAuthoritative": true,
+    "everyDefinitionMatched": true,
+    "gt": [
+      [
+        "BVC-Connect-Objects-Core",
+        83
+      ],
+      [
+        "BVC-Users-Tests",
+        34
+      ],
+      [
+        "BVC-Connect-Quic-Core",
+        155
+      ],
+      [
+        "BVC-Users-Connect-Tests",
+        32
+      ],
+      [
+        "BVC-Users-Runtime",
+        80
+      ],
+      [
+        "BVC-Users-Connect-Tests-GT",
+        7
+      ],
+      [
+        "BVC-Users-Connect-Core",
+        67
+      ],
+      [
+        "BVC-Runtime-Worker-Core",
+        456
+      ]
+    ],
+    "nativeExcludingOrganization": [
+      [
+        "BVC-Connect-Quic-Core",
+        154
+      ],
+      [
+        "BVC-Runtime-Worker-Core",
+        455
+      ],
+      [
+        "BVC-Connect-Objects-Core",
+        82
+      ],
+      [
+        "BVC-Users-Runtime",
+        79
+      ],
+      [
+        "BVC-Users-Tests",
+        33
+      ],
+      [
+        "BVC-Users-Connect-Core",
+        66
+      ],
+      [
+        "BVC-Users-Connect-Tests",
+        31
+      ]
+    ]
+  },
+  "limits": {
+    "maximumFeeds": 16,
+    "maximumUsersPerFeed": 256,
+    "receiveWaitMillis": 15000,
+    "feedLeaseMillis": 60000,
+    "clientDefaultRetainedObjects": 64,
+    "configurable": true,
+    "authorityMutations": "Configured Users API; direct repository writes/deletion/cross-authority capture are not intercepted",
+    "unknownMutations": "Never automatically replayed",
+    "security": "Existing pinned peer identity and Runtime capability; account/tenant authorization remains future work",
+    "gtPersistence": "Volatile finalization only; no database durability or rollback claim",
+    "gtRebuilt": false,
+    "privateGTManagementConnectionAdded": false,
+    "connectPerformanceHarnessChanged": false
+  }
+}
