@@ -80,12 +80,14 @@ def main():
     parser.add_argument('--clients', nargs='+', type=int, choices=[1, 8, 32, 60], default=[1, 8, 32, 60])
     parser.add_argument('--build-configuration', choices=['debug', 'release'], default='debug')
     parser.add_argument('--write-interval-millis', type=float, default=0, help='Paced serial admission; record lag if replies prevent meeting the offered schedule')
+    parser.add_argument('--observe-workunits', action='store_true', help='GemStone only: copy existing durable execution records in a read-only Gem; preserve retention and transaction boundaries')
     parser.add_argument('--mcp-url', default='http://127.0.0.1:3001/')
     args = parser.parse_args()
     for key, value in vars(args).items():
         if isinstance(value, Path): setattr(args, key, value.resolve())
     if any(count < 1 or count > 60 for count in args.clients): parser.error('client counts must be 1..60 (writer reserves one listener connection)')
     if not 0 <= args.write_interval_millis <= 1000: parser.error('write interval must be 0..1000 ms')
+    if args.observe_workunits and args.authority != 'gemstone': parser.error('durable WorkUnit observation requires GemStone')
     output = args.output; output.mkdir(parents=True, exist_ok=False)
     name = 'fanout_users_' + uuid.uuid4().hex[:12]
     env = dict(os.environ, GEMSTONE_STONE_NAME=args.deployment, BVC_USERS_PLATFORM_DIRECTORY=str(output))
@@ -95,12 +97,14 @@ def main():
     sources = dict(controller=Path(__file__), runtimeConfiguration=Path(__file__).with_name('qualify-platform-users.topaz'),
         swiftWorker=args.apple_package / 'Tests/CatalystUsersTests/NativeFanoutUsersTests.swift',
         swiftTransport=args.apple_package / 'Sources/CatalystConnect/CatalystConnect.swift')
+    if args.observe_workunits: sources['workunitObserver'] = Path(__file__).with_name('observe-user-workunits.topaz')
     report['sourceSHA256'] = {key: hashlib.sha256(path.read_bytes()).hexdigest() for key,path in sources.items()}
     for key,path in sources.items(): shutil.copy2(path, snapshot / (key + path.suffix))
     owner = 'CUFanoutLease'  + uuid.uuid4().hex
     registered = lease = False
     processes, logs, memory = [], [], []
     current_directory = None
+    observer = None
 
     def save(): write(output / 'qualification.json', report)
     def run(command, label, environment=None, timeout=90):
@@ -131,6 +135,7 @@ def main():
         deadline = time.monotonic() + timeout
         while not all(path.exists() for path in paths):
             sample_memory()
+            if observer is not None and observer.poll() is not None: raise RuntimeError('Read-only WorkUnit observer exited early; inspect its preserved log')
             for process in processes:
                 if process.poll() not in [None, 0]: raise RuntimeError('Client process failed; inspect preserved client logs')
             if (output / 'server-error.json').exists(): raise RuntimeError((output / 'server-error.json').read_text())
@@ -196,6 +201,13 @@ Smalltalk globals at: {quote(owner)} asSymbol put: run. run snapshot''')
             lease = True; wait_json(output / 'lease-active.json')
             phase('configure')
             run([args.bvc, 'runtime', 'configure', name, output / 'runtime.ston'], 'configure-runtime'); registered = True
+            if args.observe_workunits:
+                evidence = output / 'workunits'; evidence.mkdir()
+                observer_log = (evidence / 'observer.log').open('w'); logs.append(observer_log)
+                observer = subprocess.Popen([str(args.bvc), 'topaz', args.deployment, '--script', str(sources['workunitObserver'])],
+                    cwd=args.project, env=dict(env, BVC_WORKUNIT_DIRECTORY=str(evidence), BVC_WORKUNIT_RUNTIME=name),
+                    stdout=observer_log, stderr=subprocess.STDOUT)
+                report['workunitObserver'] = dict(processPid=observer.pid, ready=wait_json(evidence / 'ready.json'))
             runtime('start')
             deadline = time.monotonic() + 45
             while True:
@@ -275,7 +287,18 @@ Smalltalk globals at: {quote(owner)} asSymbol put: run. run snapshot''')
             except subprocess.TimeoutExpired: report.setdefault('retainedClientPids', []).append(process.pid)
         try:
             if registered:
-                runtime('stop'); report['stopped'] = runtime('status'); runtime('remove'); report['cleanup'] = phase('cleanup')
+                runtime('stop'); report['stopped'] = runtime('status')
+                try:
+                    if observer is not None:
+                        marker(output / 'workunits', 'stop')
+                        try: code = observer.wait(timeout=30)
+                        except subprocess.TimeoutExpired:
+                            report['retainedReadOnlyObserverPid'] = observer.pid
+                            raise RuntimeError('Read-only observer did not finish; its bounded session is preserved')
+                        if code: raise RuntimeError('Read-only WorkUnit observer failed; inspect preserved observer.log')
+                        report['workunitObserver']['completed'] = wait_json(output / 'workunits/done.json')
+                finally:
+                    runtime('remove'); report['cleanup'] = phase('cleanup')
             elif args.authority == 'gt':
                 marker(output, 'server-stop'); report['cleanup'] = wait_json(output / 'server-evidence.json')
         finally:

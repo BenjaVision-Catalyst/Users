@@ -1,0 +1,61 @@
+expectvalue true
+run
+| directory runtimeName deadline last generations records heads poll readFile writeFile ready runtime batch seen now stopped total report |
+System abortTransaction. System transactionMode: #manualBegin.
+directory := System gemEnvironmentVariable: 'BVC_WORKUNIT_DIRECTORY'.
+runtimeName := System gemEnvironmentVariable: 'BVC_WORKUNIT_RUNTIME'.
+(directory notNil and: [runtimeName notNil]) ifFalse: [self error: 'Owned qualification observation paths required'].
+writeFile := [:name :value | | file |
+ file := GsFile openWriteOnServer: directory, '/', name.
+ [file nextPutAll: (STON toJsonString: value)] ensure: [file close]].
+last := Dictionary new. generations := Dictionary new. records := OrderedCollection new. heads := Dictionary new.
+poll := 0. total := 0. deadline := Time millisecondClockValue + 300000.
+ready := Dictionary new at: 'pid' put: (System gemVersionReport at: 'processId') asInteger;
+ at: 'runtime' put: runtimeName; at: 'readOnly' put: true; at: 'pollMillis' put: 250; at: 'maximumRecords' put: 50000; yourself.
+writeFile value: 'ready.json' value: ready.
+stopped := false.
+[stopped] whileFalse: [
+ System abortTransaction.
+ runtime := CRRuntimeRegistry default runtimeNamed: runtimeName.
+ batch := OrderedCollection new. seen := Dictionary new.
+ runtime ifNotNil: [runtime nativeHosts valuesDo: [:host | | key metrics previous incoming head stamp |
+  key := host workerIdentifier asString. metrics := host executionMetrics.
+  previous := last at: key ifAbsent: [0]. incoming := metrics samplesAfterSequence: previous.
+  stamp := host generation.
+  (previous > 0 and: [(generations at: key) ~= stamp]) ifTrue: [self error: 'Observed worker generation changed'].
+  incoming do: [:sample | | row |
+   sample sequence = (previous + 1) ifFalse: [self error: 'Durable execution sequence gap; evidence cannot be reconstructed'].
+   previous := sample sequence.
+   row := Dictionary new at: 'worker' put: key; at: 'host' put: host portOrResourceNameList first asString;
+    at: 'generation' put: stamp; at: 'sequence' put: sample sequence;
+    at: 'workUnitClass' put: sample workUnitClass name asString;
+    at: 'requiresTransaction' put: sample workUnitClass requiresTransaction;
+    at: 'endMillis' put: sample endMillis; at: 'durationMillis' put: sample durationMillis;
+    at: 'successful' put: sample isSuccessful; at: 'attemptCount' put: sample attemptCount;
+    at: 'transactionOutcome' put: sample transactionOutcome asString;
+    at: 'completionRecordingOutcome' put: sample completionRecordingOutcome asString; yourself.
+   batch add: row].
+  head := metrics lastSequenceNumber.
+  previous = head ifFalse: [self error: 'Execution head and copied records disagree'].
+  last at: key put: previous. generations at: key put: stamp.
+  seen at: key put: (Dictionary new at: 'sequence' put: head; at: 'retained' put: metrics samples size;
+   at: 'retentionLimit' put: metrics maxSamples; at: 'host' put: host portOrResourceNameList first asString; yourself)]].
+ now := Time millisecondClockValue. poll := poll + 1.
+ batch do: [:row | row at: 'firstObservedMillis' put: now].
+ total := total + batch size.
+ total > 50000 ifTrue: [self error: 'Read-only observation record bound reached'].
+ records addAll: batch. heads := seen.
+ stopped := GsFile existsOnServer: directory, '/stop'.
+ now >= deadline ifTrue: [self error: 'Read-only observation deadline expired'].
+ stopped ifFalse: [(Delay forMilliseconds: 250) wait]].
+runtime ifNil: [self error: 'Runtime must remain registered through the final read-only snapshot'].
+runtime status = CRStatus stopped ifFalse: [self error: 'Final evidence requires the existing Runtime stop lifecycle'].
+report := ready copy at: 'records' put: records asArray; at: 'heads' put: heads; at: 'polls' put: poll;
+ at: 'recordCount' put: total; at: 'nativeCounterPid' put: (ready at: 'pid');
+ at: 'repositoryCommitsIssued' put: 0; at: 'metricsOrRetentionChanged' put: false;
+ at: 'runtimeStopped' put: true; at: 'sequenceComplete' put: true; yourself.
+writeFile value: 'records.json' value: report.
+System abortTransaction.
+writeFile value: 'done.json' value: (Dictionary new at: 'passed' put: true; at: 'records' put: total; at: 'polls' put: poll; yourself).
+true
+%

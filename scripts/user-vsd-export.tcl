@@ -29,7 +29,7 @@ proc catalystLine {type pid stat filter} {
     return $selected
 }
 
-proc catalystGraph {name title specifications minimum maximum includeWriter gcMode} {
+proc catalystGraph {name title specifications minimum maximum includeWriter gcMode {yTitle {Native milliseconds per recorded sample}} {yMaximum {}}} {
     global vsd env catalystSlowStart catalystSlowEnd
     set vsd(curchart) $name
     set window [createGraphWindow $name]
@@ -53,7 +53,8 @@ proc catalystGraph {name title specifications minimum maximum includeWriter gcMo
         -leftmargin 110 -rightmargin 110 -topmargin 50 -bottommargin 95
     foreach axis {x y y2} {$graph axis configure $axis -tickfont {Helvetica 12} -titlefont {Helvetica 13} -background white}
     $graph xaxis configure -command catalystTicks -title {Seconds since native capture start}
-    $graph yaxis configure -title {Native milliseconds per recorded sample} -min 0
+    $graph yaxis configure -title $yTitle -min 0
+    if {$yMaximum ne {}} {$graph yaxis configure -max $yMaximum}
     $graph y2axis configure -title {Writer round-trip milliseconds} -min 0
     $graph legend configure -font {Helvetica 12} -position bottom -anchor w -background white
     if {$gcMode} {
@@ -73,6 +74,10 @@ proc catalystGraph {name title specifications minimum maximum includeWriter gcMo
     }
     wm geometry $window 1500x850+0+0
     update
+    # VSD's pending chart-selection callbacks may hide a reused native axis.
+    showAxis $graph yaxis
+    $graph yaxis configure -showticks 1 -background white
+    update idletasks
     set photo [image create photo]
     $graph snap $photo
     $photo write [file join $env(CATALYST_VSD_ANALYSIS) "$name.png"] -format png

@@ -1,0 +1,245 @@
+{
+  "date": "2026-10-29",
+  "evidence": "https://github.com/BenjaVisionPro/catalyst-workspace/blob/main/Connect/evidence/user-workunit-commit-mix-2026-10-29.md",
+  "findings": {
+    "applicationRecords": 10372,
+    "transportRecords": 7709,
+    "transportSharePercent": 74.32510605476283,
+    "controlRecords": 1351,
+    "applicationPrimaryNativeCommitDelta": 10394,
+    "controlPrimaryNativeCommitDelta": 2478,
+    "sequenceComplete": true,
+    "nontransactionalBodiesStillRecordDurableCompletion": true,
+    "exactInstalledBinaryUsesF_FULLFSYNC": true,
+    "currentKernelWakerUnmeasured": true,
+    "productionPolicyChanged": false
+  },
+  "idleWindows": [
+    {
+      "clients": 1,
+      "startMillis": 1793272793512.7942,
+      "endMillis": 1793272795222.0322,
+      "durationMillis": 1709.238037109375,
+      "completedVisibleRecords": {
+        "CCQuicDriveWork": 74
+      },
+      "applicationRequests": 0,
+      "note": "Boundaries exclude 150 ms; retained completions must end and be observed within the window."
+    },
+    {
+      "clients": 60,
+      "startMillis": 1793272867743.8887,
+      "endMillis": 1793272869461.5342,
+      "durationMillis": 1717.6455078125,
+      "completedVisibleRecords": {
+        "CCQuicDriveWork": 84
+      },
+      "applicationRequests": 0,
+      "note": "Boundaries exclude 150 ms; retained completions must end and be observed within the window."
+    }
+  ],
+  "unsuccessfulMainRecords": [
+    {
+      "requiresTransaction": false,
+      "workUnitClass": "CCQuicDriveWork",
+      "generation": "a2dcf530-2a4a-4dab-ba7c-6eee9d17c18d",
+      "endMillis": 1793272744148,
+      "durationMillis": 0,
+      "successful": false,
+      "sequence": 2,
+      "attemptCount": 1,
+      "worker": "n6877iw2n880a47cv7geiv96_worker_2",
+      "transactionOutcome": "inMemory",
+      "completionRecordingOutcome": "recorded",
+      "host": "application",
+      "firstObservedMillis": 1793272744309
+    },
+    {
+      "requiresTransaction": false,
+      "workUnitClass": "CRReconcileDeploymentTopology",
+      "generation": "0e22675f-9fce-49ce-bee4-fd6888e6d812",
+      "endMillis": 1793272871521,
+      "durationMillis": 0,
+      "successful": false,
+      "sequence": 1348,
+      "attemptCount": 1,
+      "worker": "n6877iw2n880a47cv7geiv96_worker_1",
+      "transactionOutcome": "inMemory",
+      "completionRecordingOutcome": "recorded",
+      "host": "aControl",
+      "firstObservedMillis": 1793272871688
+    },
+    {
+      "requiresTransaction": false,
+      "workUnitClass": "CRReconcileDeploymentTopology",
+      "generation": "0e22675f-9fce-49ce-bee4-fd6888e6d812",
+      "endMillis": 1793272871629,
+      "durationMillis": 0,
+      "successful": false,
+      "sequence": 1350,
+      "attemptCount": 1,
+      "worker": "n6877iw2n880a47cv7geiv96_worker_1",
+      "transactionOutcome": "inMemory",
+      "completionRecordingOutcome": "recorded",
+      "host": "aControl",
+      "firstObservedMillis": 1793272871688
+    },
+    {
+      "requiresTransaction": false,
+      "workUnitClass": "CRReconcileDeploymentTopology",
+      "generation": "0e22675f-9fce-49ce-bee4-fd6888e6d812",
+      "endMillis": 1793272871719,
+      "durationMillis": 0,
+      "successful": false,
+      "sequence": 1351,
+      "attemptCount": 1,
+      "worker": "n6877iw2n880a47cv7geiv96_worker_1",
+      "transactionOutcome": "inMemory",
+      "completionRecordingOutcome": "recorded",
+      "host": "aControl",
+      "firstObservedMillis": 1793272871941
+    }
+  ],
+  "verification": {
+    "analyzerTests": 4,
+    "nativeToolingTests": 8,
+    "nativeMethodsVerified": 156,
+    "nativeFilteredPointsVerified": 15364,
+    "nativeGraphCount": 4,
+    "mainOneAndSixtyObserverWorkloadPassed": true,
+    "sampledSixtyObserverWorkloadPassed": true,
+    "independentGemPersistencePassed": true,
+    "observerNativeCommits": 0
+  },
+  "preservation": {
+    "originalWorkerFilesVerified": 9,
+    "configurationUnchanged": [
+      {
+        "file": "recovery/bvc-seaside-20261027/experiment/stones/bvc_foundation_portable/system.conf",
+        "sha256": "97b2a468a647e28c09fe00bcc96e4b3a0393294cb906de58912f20d64514aea3"
+      },
+      {
+        "file": "recovery/bvc-seaside-20261027/experiment/stones/bvc_foundation_portable/gem.conf",
+        "sha256": "5d238dea78f85e7854cd6e44f00adee0490b2a4fbb7f696e53c5df953f4cc10a"
+      }
+    ],
+    "ownedProcesses": [
+      {
+        "case": "capture",
+        "role": "collector",
+        "pid": 34750,
+        "live": false
+      },
+      {
+        "case": "capture",
+        "role": "observer",
+        "pid": 34976,
+        "live": false
+      },
+      {
+        "case": "capture",
+        "role": "worker",
+        "pid": 35026,
+        "live": false
+      },
+      {
+        "case": "capture",
+        "role": "worker",
+        "pid": 35074,
+        "live": false
+      },
+      {
+        "case": "traced",
+        "role": "collector",
+        "pid": 36317,
+        "live": false
+      },
+      {
+        "case": "traced",
+        "role": "observer",
+        "pid": 36543,
+        "live": false
+      },
+      {
+        "case": "traced",
+        "role": "worker",
+        "pid": 36642,
+        "live": false
+      },
+      {
+        "case": "traced",
+        "role": "worker",
+        "pid": 36594,
+        "live": false
+      },
+      {
+        "case": "sampled",
+        "role": "collector",
+        "pid": 37596,
+        "live": false
+      },
+      {
+        "case": "sampled",
+        "role": "observer",
+        "pid": 37822,
+        "live": false
+      },
+      {
+        "case": "sampled",
+        "role": "worker",
+        "pid": 37872,
+        "live": false
+      },
+      {
+        "case": "sampled",
+        "role": "worker",
+        "pid": 37920,
+        "live": false
+      },
+      {
+        "case": "sampled-sync",
+        "role": "collector",
+        "pid": 38899,
+        "live": false
+      },
+      {
+        "case": "sampled-sync",
+        "role": "observer",
+        "pid": 39125,
+        "live": false
+      },
+      {
+        "case": "sampled-sync",
+        "role": "worker",
+        "pid": 39175,
+        "live": false
+      },
+      {
+        "case": "sampled-sync",
+        "role": "worker",
+        "pid": 39223,
+        "live": false
+      }
+    ],
+    "temporaryDisplay": {
+      "pid": 40516,
+      "owned": true,
+      "stopped": true,
+      "exit": 0
+    },
+    "developmentRuntimePreservedInEveryQualification": true,
+    "originalWorkReplayed": false,
+    "productionSourceChanged": false,
+    "gtRebuilt": false,
+    "gtRegisteredUsersCheckout": "/opt/TestNewBVC/SuperGame/git_root/projects/catalyst-users",
+    "independentUsersCheckout": "/opt/git/BenjaVisionPro/catalyst-workspace/Users/CatalystUsers"
+  },
+  "limits": [
+    "All completion records are preserved, including unsuccessful startup/teardown records; the collector did not copy exception details.",
+    "Native time counters overlap and are not additive phases; journal body duration excludes final outer completion commit.",
+    "First observation includes polling/snapshot effects and is not a commit-latency measurement.",
+    "Current full-sync path confirmed by stack plus exact binary; current kernel waker and individual syscall durations remain unmeasured.",
+    "Whole-device counters are not cache-flush duration/utilization.",
+    "No durability weakening, transaction combining, asynchronous success replies, production source edits or original work replay."
+  ]
+}

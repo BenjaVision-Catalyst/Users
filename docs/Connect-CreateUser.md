@@ -305,3 +305,21 @@ reproduced three multi-second writer stalls with native log-sync bursts and no
 serving-Gem GC in the recorded contained intervals. It includes actual VSD chart
 snapshots, a steady-window comparison, raw data and bounded collection/analysis
 scripts. Runtime and durability semantics remain unchanged.
+
+The [WorkUnit/host-flush investigation](https://github.com/BenjaVisionPro/catalyst-workspace/blob/main/Connect/evidence/user-workunit-commit-mix-2026-10-29.md)
+retains a complete durable completion journal and native commit-rate/idle-window
+VSD graphs. Transport drive/request work accounts for 74.3% of application
+completions; even nontransactional bodies persist completion evidence. The current
+Stone stack and exact binary confirm the `HostFsync`/`F_FULLFSYNC` path. This is
+measurement, with no production policy or durability changes.
+
+`qualify-user-fanout.py --observe-workunits` optionally adds one bounded read-only
+Gem for a GemStone qualification. It starts before the Runtime, reads existing
+execution samples without changing their retention, and exits after Runtime stop
+before descriptor removal. Gaps or generation changes fail the collection; work
+is never replayed. The extra reader issues no commits but has observation overhead.
+After `analyze-user-vsd.py`, run `analyze-user-workunits.py --capture CASE --output
+mix.json --vsd-analysis CASE/analysis`. Source `user-workunit-vsd-export.tcl` from a
+fresh VSD profile for native commit-rate graphs, using the existing capture and
+analysis environment variables. The full reproduction and limitations are in the
+evidence archive.
