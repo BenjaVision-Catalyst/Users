@@ -48,6 +48,32 @@ CUUsersConnectExamples >> testNativeUserDescriptionRoundTrip [
 ]
 
 { #category : 'tests' }
+CUUsersConnectExamples >> testPlatformQualificationRetainsCommitContract [
+ <gtExample>
+ <return: #CCObjectBinding>
+ | binding completion |
+ binding := CUUsersCommitGateApplicationFixture new bindingFor: self configuration.
+ self assert: binding requiresTransaction.
+ self assert: (CUUsersCapability canBeGrantedToWorkUnitClass: CUUsersCommitGateMessageFixture).
+ self assert: CUUsersCommitGateMessageFixture serviceClass == CUUsersService.
+ completion := CCObjectResultCompletion new binding: binding response: CCObjectDeferredResponse new probe: false.
+ self assert: completion afterCommit. self assert: completion afterFinalization.
+ ^ binding
+]
+
+{ #category : 'tests' }
+CUUsersConnectExamples >> testUnicodeUserDescriptionRoundTrip [
+ <gtExample>
+ <return: #CUUser>
+ | user schema result |
+ user := CUUser new name: ('Ada ', #[195 169 240 159 155 176] utf8Decoded, '/"'); yourself.
+ schema := CCObjectSchema forObject: user. result := schema decode: (schema encode: user).
+ self assert: result name equals: user name. self deny: result isSuperUser.
+ self assert: schema revision equals: '742282f3bd6d47c824c6c12a2244dcb79ac5b13ba1d94aa4bd60b843608185cb'.
+ ^ result
+]
+
+{ #category : 'tests' }
 CUUsersConnectExamples >> testWrongConfiguredPeerCannotCreateUsersEndpoint [
  <gtExample>
  <return: #CCQuicConfiguration>

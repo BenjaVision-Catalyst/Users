@@ -1,0 +1,149 @@
+{
+  "date": "2026-10-29",
+  "passed": true,
+  "scope": "Unreal UE5.8 Mac arm64, Swift macOS arm64 and Swift iOS26.5 Simulator -> configured authoritative Users service in GemStone3.7.5",
+  "runtime": "platform_users_d92f3bd46a5a",
+  "configuredFromRuntimeConfiguration": true,
+  "defaultWorker": "CRGemStoneWorker",
+  "host": "CRGemStoneWorkerHost",
+  "connectAndUsersColocated": true,
+  "platforms": {
+    "swift-macos": {
+      "passed": true,
+      "noSuccessBeforeCommit": true,
+      "independentGemRead": true,
+      "nativeResult": true,
+      "rollbackUnknown": true,
+      "superUserUnknown": true,
+      "mismatchRefused": true,
+      "explicitReconnect": true,
+      "noAutomaticReplay": true
+    },
+    "swift-ios": {
+      "passed": true,
+      "noSuccessBeforeCommit": true,
+      "independentGemRead": true,
+      "nativeResult": true,
+      "rollbackUnknown": true,
+      "superUserUnknown": true,
+      "mismatchRefused": true,
+      "explicitReconnect": true,
+      "noAutomaticReplay": true
+    },
+    "unreal": {
+      "passed": true,
+      "noSuccessBeforeCommit": true,
+      "independentGemRead": true,
+      "nativeResult": true,
+      "rollbackUnknown": true,
+      "superUserUnknown": true,
+      "mismatchRefused": true,
+      "explicitReconnect": true,
+      "noAutomaticReplay": true
+    }
+  },
+  "beforeCommit": [
+    {
+      "heldUserVisible": false,
+      "runtime": "platform_users_d92f3bd46a5a",
+      "phase": "beforeCommit",
+      "independentGemRead": true
+    },
+    {
+      "heldUserVisible": false,
+      "runtime": "platform_users_d92f3bd46a5a",
+      "phase": "beforeCommit",
+      "independentGemRead": true
+    },
+    {
+      "heldUserVisible": false,
+      "runtime": "platform_users_d92f3bd46a5a",
+      "phase": "beforeCommit",
+      "independentGemRead": true
+    }
+  ],
+  "afterCommit": [
+    {
+      "committedUser": "platform_users_d92f3bd46a5a_user_swift-macos:hold",
+      "runtime": "platform_users_d92f3bd46a5a",
+      "phase": "afterCommit",
+      "independentGemRead": true
+    },
+    {
+      "committedUser": "platform_users_d92f3bd46a5a_user_swift-ios:hold",
+      "runtime": "platform_users_d92f3bd46a5a",
+      "phase": "afterCommit",
+      "independentGemRead": true
+    },
+    {
+      "committedUser": "platform_users_d92f3bd46a5a_user_unreal:hold",
+      "runtime": "platform_users_d92f3bd46a5a",
+      "phase": "afterCommit",
+      "independentGemRead": true
+    }
+  ],
+  "createdUsers": [
+    "platform_users_d92f3bd46a5a_user_swift-macos:hold",
+    "platform_users_d92f3bd46a5a_user_swift-macos:reconnected:é🛰/\"",
+    "platform_users_d92f3bd46a5a_user_swift-ios:hold",
+    "platform_users_d92f3bd46a5a_user_swift-ios:reconnected:é🛰/\"",
+    "platform_users_d92f3bd46a5a_user_unreal:hold",
+    "platform_users_d92f3bd46a5a_user_unreal:reconnected:é🛰/\""
+  ],
+  "onlyExpectedUsersPersisted": true,
+  "transactionOutcomes": [
+    {
+      "successful": true,
+      "transaction": "committed",
+      "completion": "recorded",
+      "count": 8
+    },
+    {
+      "successful": false,
+      "transaction": "aborted",
+      "completion": "recorded",
+      "count": 4
+    }
+  ],
+  "cleanup": {
+    "removedUsers": 6,
+    "originalUsersPreserved": true,
+    "phase": "cleanup",
+    "runtime": "platform_users_d92f3bd46a5a",
+    "gateRestored": true
+  },
+  "developmentRuntimePreserved": true,
+  "mcp": {
+    "state": "released",
+    "originalRegistriesRestored": true
+  },
+  "qualification_sha256": "4b478bdda3bb10cac9c84d55ff9b304ab62062789772ed44ca3fdb3bbb192397",
+  "sourceVerification": {
+    "authority": "Live GT MCP compilation/export",
+    "gtExamplesPassed": 19,
+    "nativeSnapshots": [
+      [
+        "BVC-Connect-Objects-Core",
+        65
+      ],
+      [
+        "BVC-Users-Connect-Tests",
+        19
+      ]
+    ],
+    "nativeUnicodeRegression": true
+  },
+  "nativeDescriptionRevision": "742282f3bd6d47c824c6c12a2244dcb79ac5b13ba1d94aa4bd60b843608185cb",
+  "gemstoneUnicodeFix": "Bounded canonical scalar-array UTF-8 JSON avoids invalid five-digit non-BMP escapes in the stone JSON writer.",
+  "builds": {
+    "unrealEditor": "passed",
+    "unrealGame": "passed",
+    "iosArm64UnsignedDevice": "passed",
+    "physicalDeviceExecution": "not run"
+  },
+  "limitations": [
+    "Installed-description scalar profile; no full graph/4 exchange or remote class/code installation.",
+    "Existing temporary shared AllUsers store; tenant/account authorization and stable user IDs remain separate.",
+    "Failed/uncertain execution returns unknown and is not automatically replayed."
+  ]
+}

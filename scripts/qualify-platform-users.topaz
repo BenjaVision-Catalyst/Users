@@ -1,0 +1,75 @@
+expectvalue true
+run
+| directory phase file parameters runtimeName key runtime root report configuration users orchestrator control application services deployments selected client gate created expected hosts samples |
+System abortTransaction. System transactionMode: #manualBegin.
+directory := System gemEnvironmentVariable: 'BVC_USERS_PLATFORM_DIRECTORY'.
+phase := System gemEnvironmentVariable: 'BVC_USERS_PLATFORM_PHASE'.
+file := GsFile openReadOnServer: directory, '/parameters.json'.
+[parameters := STONJSON fromString: file contents asByteArray utf8Decoded] ensure: [file close].
+runtimeName := parameters at: 'runtime'. key := (runtimeName, '_platform_qualification') asSymbol.
+runtime := CRRuntimeRegistry default runtimeNamed: runtimeName.
+report := Dictionary new at: 'phase' put: phase; at: 'runtime' put: runtimeName; yourself.
+phase = 'configure' ifTrue: [
+ runtime ifNotNil: [self error: 'Qualification Runtime already exists'].
+ (UserGlobals includesKey: key) ifTrue: [self error: 'Qualification root already exists'].
+ orchestrator := CROrchestrationConfiguration default heartbeatIntervalMillis: 500; reconcileIntervalMillis: 100; yourself.
+ users := CRServiceConfiguration new identifier: #users; label: 'Authoritative Users'; serviceClass: CUUsersService; authoritative: true; yourself.
+ services := OrderedCollection with: orchestrator with: users.
+ (parameters at: 'clients') do: [:spec | | connect target identifier |
+  identifier := ('connect_', (spec at: 'name')) asSymbol.
+  file := GsFile openReadOnServer: (spec at: 'serverOptions').
+  [connect := CCQuicConfiguration new identifier: identifier; label: 'Platform Users endpoint';
+   nativeOptionsJson: file contents; libraryPath: (parameters at: 'library'); principal: (spec at: 'name');
+   allowedOperations: #(1 65534); applicationClass: CUUsersCommitGateApplicationFixture; yourself] ensure: [file close].
+  target := CRServiceBindingConfiguration new identifier: #users; label: 'Users'; serviceIdentifier: #users; yourself.
+  connect bindings: {target}. services add: connect].
+ configuration := CRRuntimeConfiguration new label: 'Native platform Users qualification'; services: services asArray; yourself.
+ control := CRHostConfiguration new identifier: #aControl; label: 'Control'; address: 'localhost'; maxProcesses: 1; services: {CRRuntime orchestratorIdentifier}; yourself.
+ selected := (services reject: [:service | service identifier = CRRuntime orchestratorIdentifier]) collect: [:service | service identifier].
+ application := CRHostConfiguration new identifier: #application; label: 'Users and Connect'; address: 'localhost'; maxProcesses: 1; services: selected asArray; yourself.
+ configuration topology: (CRTopologyConfiguration new hosts: {control. application}; placementStrategyConfiguration: CRRoundRobinPlacementStrategyConfiguration new; yourself).
+ deployments := services collect: [:service | CRServiceDeploymentConfiguration new serviceIdentifier: service identifier; label: service label; initialCount: 1; yourself].
+ configuration deployment serviceDeployments: deployments asArray. configuration failureEvidenceConfiguration captureDebugArtifacts: false.
+ configuration validate isValid ifFalse: [self error: 'Invalid platform Users configuration'].
+ (GsFile openWriteOnServer: directory, '/runtime.ston') nextPutAll: (CRRuntimeConfigurationCodec toString: configuration); close.
+ CRGemStoneRuntime duringTransaction: [UserGlobals at: key put: (Dictionary new at: #originalUsers put: CUUsers allUsers copy; at: #originalGateDirectory put: CUUsersCommitGateMessageFixture gateDirectory; yourself)].
+ report at: 'configurationValid' put: true].
+phase = 'gate' ifTrue: [
+ client := parameters at: 'activeClient'. gate := client at: 'output'.
+ CRGemStoneRuntime duringTransaction: [CUUsersCommitGateMessageFixture gateDirectory: gate].
+ report at: 'trustedGateConfigured' put: true].
+phase = 'beforeCommit' ifTrue: [
+ client := parameters at: 'activeClient'. created := CUUsers allUsers select: [:user | user name = ((client at: 'prefix'), ':hold')].
+ created isEmpty ifFalse: [self error: 'Held insertion became visible before the commit gate was released'].
+ report at: 'independentGemRead' put: true; at: 'heldUserVisible' put: false].
+phase = 'afterCommit' ifTrue: [
+ client := parameters at: 'activeClient'. created := CUUsers allUsers select: [:user | user name = ((client at: 'prefix'), ':hold')].
+ (created size = 1 and: [created first isSuperUser not]) ifFalse: [self error: 'Returned user is not visible in an independent Gem'].
+ report at: 'independentGemRead' put: true; at: 'committedUser' put: created first name].
+phase = 'verify' ifTrue: [
+ root := UserGlobals at: key.
+ created := CUUsers allUsers select: [:user | user name beginsWith: (parameters at: 'prefix')].
+ expected := OrderedCollection new.
+ (parameters at: 'clients') do: [:spec | expected add: (spec at: 'prefix'), ':hold'; add: (spec at: 'reconnectedName')].
+ ((created collect: [:user | user name]) asArray sort = expected asArray sort) ifFalse: [self error: 'Only committed platform calls must persist, without replay'].
+ (root at: #originalUsers) do: [:user | (CUUsers allUsers identityIncludes: user) ifFalse: [self error: 'Original user missing']].
+ hosts := runtime nativeHosts values select: [:host | ((runtime publications at: host workerIdentifier) serviceHandleForIdentifier: #users) notNil].
+ (hosts size = 1 and: [hosts first class == CRGemStoneWorkerHost]) ifFalse: [self error: 'Configured default worker required'].
+ samples := hosts first executionMetrics samples select: [:sample | sample workUnitClass == CUUsersCommitGateMessageFixture].
+ (samples notEmpty and: [samples allSatisfy: [:sample | sample completionRecordingOutcome = #recorded]]) ifFalse: [self error: 'Commit completion evidence missing'].
+ (hosts first failures asArray anySatisfy: [:failure | failure errorMessage includesSubstring: 'Qualification failure after Users insertion.']) ifFalse: [self error: 'Post-insertion rollback evidence missing'].
+ report at: 'defaultTransactionalWorker' put: true; at: 'onlySuccessfulUsersPersisted' put: true; at: 'createdCodepoints' put: (created collect: [:user | user name asArray collect: [:char | char asciiValue]]) asArray;
+  at: 'outcomes' put: (samples collect: [:sample | {sample isSuccessful. sample transactionOutcome asString. sample completionRecordingOutcome asString}]) asArray].
+phase = 'cleanup' ifTrue: [
+ runtime ifNotNil: [self error: 'Stop and remove the owned Runtime first'].
+ root := UserGlobals at: key.
+ CRGemStoneRuntime duringTransaction: [
+  created := CUUsers allUsers select: [:user | user name beginsWith: (parameters at: 'prefix')].
+  created do: [:user | CUUsers allUsers remove: user].
+  (root at: #originalUsers) do: [:user | (CUUsers allUsers identityIncludes: user) ifFalse: [self error: 'Original user missing']].
+  CUUsersCommitGateMessageFixture gateDirectory: (root at: #originalGateDirectory).
+  UserGlobals removeKey: key].
+ report at: 'removedUsers' put: created size; at: 'originalUsersPreserved' put: true; at: 'gateRestored' put: true].
+(GsFile openWriteOnServer: directory, '/', phase, '.json') nextPutAll: (STON toJsonString: report) utf8Encoded asString; close.
+true
+%
