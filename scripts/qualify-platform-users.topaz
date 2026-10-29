@@ -13,14 +13,14 @@ phase = 'configure' ifTrue: [
  runtime ifNotNil: [self error: 'Qualification Runtime already exists'].
  (UserGlobals includesKey: key) ifTrue: [self error: 'Qualification root already exists'].
  orchestrator := CROrchestrationConfiguration default heartbeatIntervalMillis: 500; reconcileIntervalMillis: 100; yourself.
- users := CRServiceConfiguration new identifier: #users; label: 'Authoritative Users'; serviceClass: CUUsersService; authoritative: true; yourself.
+ users := CUUsersConfiguration new identifier: #users; label: 'Authoritative Users'; authoritative: true; maximumFeeds: (parameters at: 'maximumFeeds' ifAbsent: [16]); maximumUsersPerFeed: (parameters at: 'maximumUsersPerFeed' ifAbsent: [256]); yourself.
  services := OrderedCollection with: orchestrator with: users.
  (parameters at: 'clients') do: [:spec | | connect target identifier |
   identifier := ('connect_', (spec at: 'name')) asSymbol.
   file := GsFile openReadOnServer: (spec at: 'serverOptions').
-  [connect := CCQuicConfiguration new nativeProtocolVersion: 2; identifier: identifier; label: 'Platform Users endpoint';
+  [connect := CCQuicConfiguration new nativeProtocolVersion: 2; identifier: identifier; label: ((parameters at: 'fanout' ifAbsent: [false]) ifTrue: [directory] ifFalse: ['Platform Users endpoint']);
    nativeOptionsJson: file contents; libraryPath: (parameters at: 'library'); principal: (spec at: 'name');
-   idleMillis: 20; allowedOperations: #(1 2 3 4 5 6 7 8 9 65534); applicationClass: CUUsersCommitGateApplicationFixture; yourself] ensure: [file close].
+   idleMillis: 20; allowedOperations: #(1 2 3 4 5 6 7 8 9 65534); applicationClass: ((parameters at: 'fanout' ifAbsent: [false]) ifTrue: [CUUsersFanoutApplicationFixture] ifFalse: [CUUsersCommitGateApplicationFixture]); yourself] ensure: [file close].
   target := CRServiceBindingConfiguration new identifier: #users; label: 'Users'; serviceIdentifier: #users; yourself.
   connect bindings: {target}. services add: connect].
  configuration := CRRuntimeConfiguration new label: 'Native platform Users qualification'; services: services asArray; yourself.
@@ -106,6 +106,20 @@ phase = 'verify' ifTrue: [
  (report at: 'lookupSamples') isEmpty ifTrue: [self error: 'No authoritative lookup execution evidence'].
  report at: 'defaultTransactionalWorker' put: true; at: 'onlySuccessfulUsersPersisted' put: true; at: 'createdCodepoints' put: (created collect: [:user | user name asArray collect: [:char | char asciiValue]]) asArray;
   at: 'outcomes' put: (samples collect: [:sample | {sample isSuccessful. sample transactionOutcome asString. sample completionRecordingOutcome asString}]) asArray].
+phase = 'fanoutVerify' ifTrue: [
+ expected := parameters at: 'expectedUsers'.
+ created := CUUsers allUsers select: [:user | user name beginsWith: (parameters at: 'prefix')].
+ created size = expected size ifFalse: [self error: 'Unexpected fan-out Users count'].
+ expected do: [:state | | user |
+  user := created detect: [:each | each userIdentifier = (state at: 'userIdentifier')] ifNone: [self error: 'Fan-out identity was not persisted'].
+  (user name = (state at: 'name') and: [user revision = (state at: 'revision')]) ifFalse: [self error: 'Final fan-out state was not persisted']].
+ hosts := runtime nativeHosts values select: [:host | ((runtime publications at: host workerIdentifier) serviceHandleForIdentifier: #users) notNil].
+ (hosts size = 1 and: [hosts first class == CRGemStoneWorkerHost]) ifFalse: [self error: 'Configured default transactional worker required'].
+ samples := hosts first executionMetrics samples select: [:sample | sample workUnitClass == CUUsersFlushWork].
+ (samples notEmpty and: [samples allSatisfy: [:sample | sample isSuccessful and: [sample transactionOutcome = #committed and: [sample completionRecordingOutcome = #recorded]]]]) ifFalse: [self error: 'Fan-out publication commit evidence missing'].
+ report at: 'expectedUsersPersisted' put: true; at: 'independentGemRead' put: true;
+  at: 'userCount' put: created size; at: 'committedPublicationSamplesRetained' put: samples size;
+  at: 'defaultTransactionalWorker' put: true].
 phase = 'cleanup' ifTrue: [
  runtime ifNotNil: [self error: 'Stop and remove the owned Runtime first'].
  root := UserGlobals at: key.

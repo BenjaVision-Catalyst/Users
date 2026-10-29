@@ -192,3 +192,74 @@ See [QUIC server-push qualification](../conformance/quic-server-push-2026-10-29.
 for both authorities, idle-window measurements and commit/rollback checks. The
 earlier [held-receive qualification](../conformance/pushed-users-2026-10-29.json)
 records the superseded transport mechanism.
+
+## Shared User fan-out qualification
+
+The finite many-client driver uses the same configured authority, default worker,
+Users route and commit/finalization boundary. Build the combined Apple package with
+the current Users Swift tests, then run each authority separately:
+
+```sh
+python3 scripts/qualify-user-fanout.py \
+  --project /path/to/bvc-project --deployment development-stone \
+  --bvc /path/to/bvc --library /path/to/immutable/libcatalyst_connect.dylib \
+  --apple-package /path/to/ApplePackage --authority gemstone \
+  --clients 1 8 32 60 --output /path/to/new-results
+```
+
+Use `--authority gt` for GT. Each profile watches the same three Users and applies
+405 confirmed writes, including two continuous bursts of 192 writes. Names include
+800 padding bytes, giving approximately 1 KiB states. The writer waits for each
+reply; this is a closed-loop workload. Independent XCTest processes keep each
+client shard below the native sixteen-owner limit. The listener and Users feed
+limits are configured to 64; the default Users feed limit remains 16.
+
+One consumer pauses at eight observers and two pause at thirty-two and sixty.
+Their actual bounded notification streams exhaust four native notification
+credits. Healthy clients must converge while those streams are paused; ordinary
+RPC on a stalled connection must progress. One paused consumer later drains its
+stream, while the other reconnects. A quarter of healthy clients also disconnect
+during writes, resnapshot, retain their cached CUUser instances and receive further
+pushes. Request counters must remain unchanged during bursts and the final idle
+window, apart from explicit probes and reconnect setup.
+
+The opt-in application fixture samples existing native counters and bounded feed
+state from Connect's owner hook every 500 ms. It charges diagnostic calls to the
+existing drive budget and writes immutable numbered evidence files. It does not
+change live persistent metrics. GemStone final states and retained publication
+commit samples are checked in an independent session. The controller owns startup,
+clients and ordinary stop/remove through the existing MCP lease; unsuccessful runs
+and their cleanup evidence remain available. The original recovered fixture is
+retained unchanged.
+
+The local macOS qualification on 2026-10-29 used debug Swift XCTest clients, the
+running GT image/native GemStone, and the release native transport. It measured
+these delivered burst-state latencies. Setup, offline resnapshot and final
+verification are excluded:
+
+| Observers | GT p99 | GemStone p99 |
+| ---: | ---: | ---: |
+| 1 | 71 ms | 93 ms |
+| 8 | 146 ms | 114 ms |
+| 32 | 821 ms | 448 ms |
+| 60 | 2609 ms | 3909 ms |
+
+All final states converged. Feed pending state stayed within three identities;
+slow native claims stayed within four notification credits. At sixty observers,
+about 25% of intermediate burst revisions reached healthy replicas through
+latest-state coalescing. These latency percentiles describe delivered revisions,
+so they must be read alongside that fraction. OS RSS samples are retained per
+process; they include VM/shared mappings and do not establish a long-duration
+leak bound. Current 32-call/4096-byte drive budgets were retained.
+
+Concurrent startup exposed refused local native opens being treated as invalid
+Swift configuration. Connect Swift now retries only unadmitted opens within the
+existing connection timeout, with close/cancellation ownership guards. Accepted
+application requests are never replayed. Its read-only `nativeStatistics()` exposes
+the existing counters used to verify slow-client credit exhaustion.
+
+See [fan-out evidence](../conformance/user-server-push-fanout-2026-10-29.json) for
+rates, latency distributions, coalescing, reconnects, RSS, source verification and
+preserved unsuccessful attempts. This is a local Swift/macOS curve under controlled
+disconnects, with the current single-listener ceiling of 64 connections. It is not
+a maximum-throughput or production-SLO qualification.

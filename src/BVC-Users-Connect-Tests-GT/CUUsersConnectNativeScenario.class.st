@@ -59,15 +59,16 @@ CUUsersConnectNativeScenario >> runConfiguration: connectConfiguration cases: ca
 
 { #category : 'push updates' }
 CUUsersConnectNativeScenario >> runServerConfigurations: specifications directory: directory [
- | configuration orchestrator host services deployments worker usersService connects original prefix results originalGate deadline idleStarts idleChecks |
- prefix := (STONJSON fromString: (directory / 'parameters.json') contents) at: 'prefix'.
+ | configuration orchestrator host services deployments worker usersService connects original prefix results originalGate deadline idleStarts idleChecks parameters fanout |
+ parameters := STONJSON fromString: (directory / 'parameters.json') contents.
+ fanout := parameters at: 'fanout' ifAbsent: [false]. prefix := parameters at: 'prefix'.
  original := CUUsers allUsers copy. originalGate := CUUsersCommitGateMessageFixture gateDirectory. connects := OrderedCollection new.
  orchestrator := CROrchestrationConfiguration default heartbeatIntervalMillis: 500; reconcileIntervalMillis: 100; yourself.
- services := OrderedCollection with: orchestrator with: (CUUsersConfiguration new identifier: #users; label: 'Volatile authoritative Users'; authoritative: true; yourself).
+ services := OrderedCollection with: orchestrator with: (CUUsersConfiguration new identifier: #users; label: 'Volatile authoritative Users'; authoritative: true; maximumFeeds: (parameters at: 'maximumFeeds' ifAbsent: [16]); maximumUsersPerFeed: (parameters at: 'maximumUsersPerFeed' ifAbsent: [256]); yourself).
  specifications do: [:spec | | cfg |
-  cfg := CCQuicConfiguration new nativeProtocolVersion: 2; identifier: ('connect_', (spec at: 'name')) asSymbol; label: 'Users native server';
+  cfg := CCQuicConfiguration new nativeProtocolVersion: 2; identifier: ('connect_', (spec at: 'name')) asSymbol; label: (fanout ifTrue: [directory fullName] ifFalse: ['Users native server']);
    nativeOptionsJson: (spec at: 'serverOptions') asFileReference contents; libraryPath: (CCPharoQuicPushNative loadedPath ifNil: [spec at: 'library']);
-   principal: (spec at: 'name'); idleMillis: 20; allowedOperations: #(1 2 3 4 5 6 7 8 9 65534); applicationClass: CUUsersCommitGateApplicationFixture;
+   principal: (spec at: 'name'); idleMillis: 20; allowedOperations: #(1 2 3 4 5 6 7 8 9 65534); applicationClass: (fanout ifTrue: [CUUsersFanoutApplicationFixture] ifFalse: [CUUsersCommitGateApplicationFixture]);
    bindings: {CRServiceBindingConfiguration new identifier: #users; serviceIdentifier: #users; yourself}; yourself.
   services add: cfg].
  configuration := CRRuntimeConfiguration new label: 'GT Users authority qualification'; services: services asArray; yourself.

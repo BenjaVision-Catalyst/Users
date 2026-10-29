@@ -1,0 +1,832 @@
+{
+  "date": "2026-10-29",
+  "passed": true,
+  "scope": "Local native Swift macOS clients in independent processes; one configured authority Runtime at a time; GT and GemStone",
+  "methodology": {
+    "profiles": [
+      1,
+      8,
+      32,
+      60
+    ],
+    "sharedUsersPerProfile": 3,
+    "confirmedWritesPerProfile": 405,
+    "continuousBurstWritesPerProfile": 384,
+    "stateSize": "Approximately 1 KiB; User names include 800 padding bytes",
+    "writer": "One serial caller awaiting each commit/finalization reply; closed-loop offered load",
+    "clientProcesses": "Up to ten native owners per XCTest shard, below the existing sixteen-owner bound",
+    "slowConsumers": "One at eight observers, two at thirty-two and sixty; stop consuming the real bounded notification stream through two bursts, then drain one and reconnect the other",
+    "reconnects": "Every fourth healthy observer plus one slow observer disconnects while three updates commit, resnapshots, then receives fresh pushes",
+    "latency": "Submission-to-observer for delivered burst revisions, excluding setup, baseline, offline resnapshot and final verification; coalescing is allowed",
+    "rss": "Sampled OS RSS per process; includes VM/shared mappings and is not a long-duration leak proof",
+    "sampling": "Existing Connect owner progress hook every 500 ms, with diagnostic native calls charged to its existing call budget; no live persistent metrics mutation"
+  },
+  "results": {
+    "gt": [
+      {
+        "clients": 1,
+        "slowConsumers": 0,
+        "sharedUsers": 3,
+        "updates": 405,
+        "elapsedSeconds": 24.307900542393327,
+        "deliveredHealthySamples": 405,
+        "latencyFromSubmissionMillis": {
+          "p50": 41.74449946731329,
+          "p95": 54.553791880607605,
+          "p99": 73.89029208570719,
+          "max": 609.0885419398546
+        },
+        "writerRTTMillis": {
+          "p50": 39.60095904767513,
+          "p95": 49.5619997382164,
+          "p99": 67.17720814049244
+        },
+        "maximumPendingStatesPerFeed": 1,
+        "maximumNativeRecords": 1,
+        "maximumNativePayloadBytes": 985,
+        "rpcWhileNotificationStalledMillis": [],
+        "nativeSampleRange": [
+          3,
+          51
+        ],
+        "slowFeedsRetainingStateAfterHealthyConvergence": 0,
+        "slowNativeStatistics": [],
+        "idleApplicationRequests": 0,
+        "allClientsConverged": true,
+        "stableIdentities": true,
+        "reconnectRecovered": true,
+        "clientNativeCleanup": true,
+        "burstLatencyMillis": {
+          "p50": 41.632916778326035,
+          "p95": 51.22825037688017,
+          "p99": 70.90570777654648,
+          "max": 74.25070833414793
+        },
+        "deliveredBurstStates": 384,
+        "possibleBurstStates": 384,
+        "deliveredIntermediateRevisionFraction": 1.0,
+        "confirmedBurstWritesPerSecond": 24.53471220113238,
+        "largestRevisionGapOnResumedSlowStream": 0,
+        "coordinatorObservedReconnectReadyMillis": 518.5878276824951,
+        "run": "gt-small-final",
+        "serverProcessSamples": {
+          "85315": {
+            "minimumRSSKiB": 899424,
+            "maximumRSSKiB": 899472,
+            "maximumSampledCPUPercent": 42.8
+          }
+        }
+      },
+      {
+        "clients": 8,
+        "slowConsumers": 1,
+        "sharedUsers": 3,
+        "updates": 405,
+        "elapsedSeconds": 31.99548591673374,
+        "deliveredHealthySamples": 2835,
+        "latencyFromSubmissionMillis": {
+          "p50": 67.0129582285881,
+          "p95": 98.53670839220285,
+          "p99": 151.1210836470127,
+          "max": 1198.805708438158
+        },
+        "writerRTTMillis": {
+          "p50": 41.63033328950405,
+          "p95": 68.45429167151451,
+          "p99": 91.67016670107841
+        },
+        "maximumPendingStatesPerFeed": 3,
+        "maximumNativeRecords": 2,
+        "maximumNativePayloadBytes": 985,
+        "rpcWhileNotificationStalledMillis": [
+          28.32991722971201
+        ],
+        "nativeSampleRange": [
+          51,
+          113
+        ],
+        "slowFeedsRetainingStateAfterHealthyConvergence": 1,
+        "slowNativeStatistics": [
+          {
+            "bodyBytes": 3832,
+            "capacity": 4,
+            "peakRecords": 4,
+            "receivedNotifications": 5,
+            "records": 4,
+            "submitted": 10,
+            "subscriptions": 1
+          }
+        ],
+        "idleApplicationRequests": 0,
+        "allClientsConverged": true,
+        "stableIdentities": true,
+        "reconnectRecovered": true,
+        "clientNativeCleanup": true,
+        "burstLatencyMillis": {
+          "p50": 66.97779148817062,
+          "p95": 97.15166687965393,
+          "p99": 145.74099984019995,
+          "max": 638.6680006980896
+        },
+        "deliveredBurstStates": 2688,
+        "possibleBurstStates": 2688,
+        "deliveredIntermediateRevisionFraction": 1.0,
+        "confirmedBurstWritesPerSecond": 21.081294983781184,
+        "largestRevisionGapOnResumedSlowStream": 106,
+        "coordinatorObservedReconnectReadyMillis": 1082.7465057373047,
+        "run": "gt-small-final",
+        "serverProcessSamples": {
+          "85315": {
+            "minimumRSSKiB": 899472,
+            "maximumRSSKiB": 899472,
+            "maximumSampledCPUPercent": 78.9
+          }
+        }
+      },
+      {
+        "clients": 32,
+        "slowConsumers": 2,
+        "sharedUsers": 3,
+        "updates": 405,
+        "elapsedSeconds": 84.64310074970126,
+        "deliveredHealthySamples": 5876,
+        "latencyFromSubmissionMillis": {
+          "p50": 271.0779579356313,
+          "p95": 536.092416383326,
+          "p99": 913.442499935627,
+          "max": 1876.8537500873208
+        },
+        "writerRTTMillis": {
+          "p50": 169.80099957436323,
+          "p95": 218.57754234224558,
+          "p99": 237.28691693395376
+        },
+        "maximumPendingStatesPerFeed": 3,
+        "maximumNativeRecords": 4,
+        "maximumNativePayloadBytes": 986,
+        "rpcWhileNotificationStalledMillis": [
+          162.1361244469881,
+          110.90066656470299
+        ],
+        "nativeSampleRange": [
+          113,
+          275
+        ],
+        "slowFeedsRetainingStateAfterHealthyConvergence": 1,
+        "slowNativeStatistics": [
+          {
+            "bodyBytes": 3836,
+            "capacity": 4,
+            "peakRecords": 4,
+            "receivedNotifications": 5,
+            "records": 4,
+            "submitted": 10,
+            "subscriptions": 1
+          },
+          {
+            "bodyBytes": 3836,
+            "capacity": 4,
+            "peakRecords": 4,
+            "receivedNotifications": 5,
+            "records": 4,
+            "submitted": 10,
+            "subscriptions": 1
+          }
+        ],
+        "idleApplicationRequests": 0,
+        "allClientsConverged": true,
+        "stableIdentities": true,
+        "reconnectRecovered": true,
+        "clientNativeCleanup": true,
+        "burstLatencyMillis": {
+          "p50": 270.0880002230406,
+          "p95": 419.67895813286304,
+          "p99": 820.5540413036942,
+          "max": 1109.2211250215769
+        },
+        "deliveredBurstStates": 5411,
+        "possibleBurstStates": 11520,
+        "deliveredIntermediateRevisionFraction": 0.4697048611111111,
+        "confirmedBurstWritesPerSecond": 5.887475719951354,
+        "largestRevisionGapOnResumedSlowStream": 106,
+        "coordinatorObservedReconnectReadyMillis": 1507.4398517608643,
+        "run": "gt-small-final",
+        "serverProcessSamples": {
+          "85315": {
+            "minimumRSSKiB": 899472,
+            "maximumRSSKiB": 899472,
+            "maximumSampledCPUPercent": 99.6
+          }
+        }
+      },
+      {
+        "clients": 60,
+        "slowConsumers": 2,
+        "sharedUsers": 3,
+        "updates": 405,
+        "elapsedSeconds": 181.48104058299214,
+        "deliveredHealthySamples": 6187,
+        "latencyFromSubmissionMillis": {
+          "p50": 660.449749790132,
+          "p95": 2117.515333928168,
+          "p99": 2864.149708300829,
+          "max": 3387.6249166205525
+        },
+        "writerRTTMillis": {
+          "p50": 387.2364582493901,
+          "p95": 495.9498746320605,
+          "p99": 654.8736244440079
+        },
+        "maximumPendingStatesPerFeed": 3,
+        "maximumNativeRecords": 8,
+        "maximumNativePayloadBytes": 1206,
+        "rpcWhileNotificationStalledMillis": [
+          53.04733291268349,
+          96.32274974137545
+        ],
+        "nativeSampleRange": [
+          3,
+          332
+        ],
+        "slowFeedsRetainingStateAfterHealthyConvergence": 2,
+        "slowNativeStatistics": [
+          {
+            "bodyBytes": 3836,
+            "capacity": 4,
+            "peakRecords": 4,
+            "receivedNotifications": 5,
+            "records": 4,
+            "submitted": 10,
+            "subscriptions": 1
+          },
+          {
+            "bodyBytes": 3836,
+            "capacity": 4,
+            "peakRecords": 4,
+            "receivedNotifications": 5,
+            "records": 4,
+            "submitted": 10,
+            "subscriptions": 1
+          }
+        ],
+        "idleApplicationRequests": 0,
+        "allClientsConverged": true,
+        "stableIdentities": true,
+        "reconnectRecovered": true,
+        "clientNativeCleanup": true,
+        "burstLatencyMillis": {
+          "p50": 644.553916528821,
+          "p95": 1373.395999893546,
+          "p99": 2608.809000812471,
+          "max": 3142.6839577034116
+        },
+        "deliveredBurstStates": 5509,
+        "possibleBurstStates": 22272,
+        "deliveredIntermediateRevisionFraction": 0.24735093390804597,
+        "confirmedBurstWritesPerSecond": 2.524158254120963,
+        "largestRevisionGapOnResumedSlowStream": 106,
+        "coordinatorObservedReconnectReadyMillis": 2056.0879707336426,
+        "run": "gt-60-final",
+        "serverProcessSamples": {
+          "85315": {
+            "minimumRSSKiB": 898944,
+            "maximumRSSKiB": 899008,
+            "maximumSampledCPUPercent": 95.6
+          }
+        }
+      }
+    ],
+    "gemstone": [
+      {
+        "clients": 1,
+        "slowConsumers": 0,
+        "sharedUsers": 3,
+        "updates": 405,
+        "elapsedSeconds": 40.79829145781696,
+        "deliveredHealthySamples": 405,
+        "latencyFromSubmissionMillis": {
+          "p50": 75.88616665452719,
+          "p95": 87.61787507683039,
+          "p99": 785.046249628067,
+          "max": 4318.846000358462
+        },
+        "writerRTTMillis": {
+          "p50": 61.34779192507267,
+          "p95": 72.53170758485794,
+          "p99": 78.56637518852949
+        },
+        "maximumPendingStatesPerFeed": 1,
+        "maximumNativeRecords": 1,
+        "maximumNativePayloadBytes": 985,
+        "rpcWhileNotificationStalledMillis": [],
+        "nativeSampleRange": [
+          1,
+          73
+        ],
+        "slowFeedsRetainingStateAfterHealthyConvergence": 0,
+        "slowNativeStatistics": [],
+        "idleApplicationRequests": 0,
+        "allClientsConverged": true,
+        "stableIdentities": true,
+        "reconnectRecovered": true,
+        "clientNativeCleanup": true,
+        "burstLatencyMillis": {
+          "p50": 76.11833326518536,
+          "p95": 87.36520819365978,
+          "p99": 92.83133409917355,
+          "max": 2855.620250105858
+        },
+        "deliveredBurstStates": 384,
+        "possibleBurstStates": 384,
+        "deliveredIntermediateRevisionFraction": 1.0,
+        "confirmedBurstWritesPerSecond": 14.12883552524586,
+        "largestRevisionGapOnResumedSlowStream": 0,
+        "coordinatorObservedReconnectReadyMillis": 646.8124389648438,
+        "run": "gemstone",
+        "serverProcessSamples": {
+          "16727": {
+            "minimumRSSKiB": 184384,
+            "maximumRSSKiB": 219072,
+            "maximumSampledCPUPercent": 7.8
+          },
+          "16781": {
+            "minimumRSSKiB": 184864,
+            "maximumRSSKiB": 225488,
+            "maximumSampledCPUPercent": 9.2
+          }
+        }
+      },
+      {
+        "clients": 8,
+        "slowConsumers": 1,
+        "sharedUsers": 3,
+        "updates": 405,
+        "elapsedSeconds": 44.81811208277941,
+        "deliveredHealthySamples": 2835,
+        "latencyFromSubmissionMillis": {
+          "p50": 91.25312510877848,
+          "p95": 104.49708346277475,
+          "p99": 115.63391704112291,
+          "max": 3776.8250834196806
+        },
+        "writerRTTMillis": {
+          "p50": 65.00987522304058,
+          "p95": 74.11833386868238,
+          "p99": 78.26808374375105
+        },
+        "maximumPendingStatesPerFeed": 3,
+        "maximumNativeRecords": 2,
+        "maximumNativePayloadBytes": 985,
+        "rpcWhileNotificationStalledMillis": [
+          50.2530001103878
+        ],
+        "nativeSampleRange": [
+          74,
+          157
+        ],
+        "slowFeedsRetainingStateAfterHealthyConvergence": 1,
+        "slowNativeStatistics": [
+          {
+            "bodyBytes": 3830,
+            "capacity": 4,
+            "peakRecords": 4,
+            "receivedNotifications": 5,
+            "records": 4,
+            "submitted": 10,
+            "subscriptions": 1
+          }
+        ],
+        "idleApplicationRequests": 0,
+        "allClientsConverged": true,
+        "stableIdentities": true,
+        "reconnectRecovered": true,
+        "clientNativeCleanup": true,
+        "burstLatencyMillis": {
+          "p50": 91.21333342045546,
+          "p95": 103.72720845043659,
+          "p99": 113.59716672450304,
+          "max": 3776.8250834196806
+        },
+        "deliveredBurstStates": 2688,
+        "possibleBurstStates": 2688,
+        "deliveredIntermediateRevisionFraction": 1.0,
+        "confirmedBurstWritesPerSecond": 13.419204046775091,
+        "largestRevisionGapOnResumedSlowStream": 106,
+        "coordinatorObservedReconnectReadyMillis": 1386.8865966796875,
+        "run": "gemstone",
+        "serverProcessSamples": {
+          "16727": {
+            "minimumRSSKiB": 219120,
+            "maximumRSSKiB": 222176,
+            "maximumSampledCPUPercent": 6.4
+          },
+          "16781": {
+            "minimumRSSKiB": 225504,
+            "maximumRSSKiB": 230992,
+            "maximumSampledCPUPercent": 15.2
+          }
+        }
+      },
+      {
+        "clients": 32,
+        "slowConsumers": 2,
+        "sharedUsers": 3,
+        "updates": 405,
+        "elapsedSeconds": 72.53228566702455,
+        "deliveredHealthySamples": 5940,
+        "latencyFromSubmissionMillis": {
+          "p50": 151.1617498472333,
+          "p95": 276.1004585772753,
+          "p99": 1857.0428751409054,
+          "max": 5072.643458843231
+        },
+        "writerRTTMillis": {
+          "p50": 91.54608380049467,
+          "p95": 99.67204183340073,
+          "p99": 110.65091658383608
+        },
+        "maximumPendingStatesPerFeed": 3,
+        "maximumNativeRecords": 10,
+        "maximumNativePayloadBytes": 1414,
+        "rpcWhileNotificationStalledMillis": [
+          85.33412497490644,
+          68.16745828837156
+        ],
+        "nativeSampleRange": [
+          157,
+          283
+        ],
+        "slowFeedsRetainingStateAfterHealthyConvergence": 1,
+        "slowNativeStatistics": [
+          {
+            "bodyBytes": 3836,
+            "capacity": 4,
+            "peakRecords": 4,
+            "receivedNotifications": 5,
+            "records": 4,
+            "submitted": 10,
+            "subscriptions": 1
+          },
+          {
+            "bodyBytes": 3836,
+            "capacity": 4,
+            "peakRecords": 4,
+            "receivedNotifications": 5,
+            "records": 4,
+            "submitted": 10,
+            "subscriptions": 1
+          }
+        ],
+        "idleApplicationRequests": 0,
+        "allClientsConverged": true,
+        "stableIdentities": true,
+        "reconnectRecovered": true,
+        "clientNativeCleanup": true,
+        "burstLatencyMillis": {
+          "p50": 150.15012491494417,
+          "p95": 199.09745827317238,
+          "p99": 448.2213333249092,
+          "max": 4023.128332570195
+        },
+        "deliveredBurstStates": 5406,
+        "possibleBurstStates": 11520,
+        "deliveredIntermediateRevisionFraction": 0.46927083333333336,
+        "confirmedBurstWritesPerSecond": 9.821705637666405,
+        "largestRevisionGapOnResumedSlowStream": 64,
+        "coordinatorObservedReconnectReadyMillis": 3060.9519481658936,
+        "run": "gemstone",
+        "serverProcessSamples": {
+          "16727": {
+            "minimumRSSKiB": 222192,
+            "maximumRSSKiB": 229344,
+            "maximumSampledCPUPercent": 6.2
+          },
+          "16781": {
+            "minimumRSSKiB": 230992,
+            "maximumRSSKiB": 243296,
+            "maximumSampledCPUPercent": 43.1
+          }
+        }
+      },
+      {
+        "clients": 60,
+        "slowConsumers": 2,
+        "sharedUsers": 3,
+        "updates": 405,
+        "elapsedSeconds": 94.92390791513026,
+        "deliveredHealthySamples": 6423,
+        "latencyFromSubmissionMillis": {
+          "p50": 203.68458330631256,
+          "p95": 750.041582621634,
+          "p99": 3911.886665970087,
+          "max": 8728.859124705195
+        },
+        "writerRTTMillis": {
+          "p50": 118.0974580347538,
+          "p95": 128.03620845079422,
+          "p99": 133.51450022310019
+        },
+        "maximumPendingStatesPerFeed": 3,
+        "maximumNativeRecords": 18,
+        "maximumNativePayloadBytes": 2496,
+        "rpcWhileNotificationStalledMillis": [
+          50.518292002379894,
+          59.74224954843521
+        ],
+        "nativeSampleRange": [
+          283,
+          452
+        ],
+        "slowFeedsRetainingStateAfterHealthyConvergence": 0,
+        "slowNativeStatistics": [
+          {
+            "bodyBytes": 3836,
+            "capacity": 4,
+            "peakRecords": 4,
+            "receivedNotifications": 5,
+            "records": 4,
+            "submitted": 10,
+            "subscriptions": 1
+          },
+          {
+            "bodyBytes": 3842,
+            "capacity": 4,
+            "peakRecords": 4,
+            "receivedNotifications": 5,
+            "records": 4,
+            "submitted": 10,
+            "subscriptions": 1
+          }
+        ],
+        "idleApplicationRequests": 0,
+        "allClientsConverged": true,
+        "stableIdentities": true,
+        "reconnectRecovered": true,
+        "clientNativeCleanup": true,
+        "burstLatencyMillis": {
+          "p50": 201.72120817005634,
+          "p95": 376.28299929201603,
+          "p99": 3908.8854994624853,
+          "max": 4878.575665876269
+        },
+        "deliveredBurstStates": 5643,
+        "possibleBurstStates": 22272,
+        "deliveredIntermediateRevisionFraction": 0.2533674568965517,
+        "confirmedBurstWritesPerSecond": 7.775155397083931,
+        "largestRevisionGapOnResumedSlowStream": 64,
+        "coordinatorObservedReconnectReadyMillis": 8524.188995361328,
+        "run": "gemstone",
+        "serverProcessSamples": {
+          "16727": {
+            "minimumRSSKiB": 229344,
+            "maximumRSSKiB": 234112,
+            "maximumSampledCPUPercent": 6.3
+          },
+          "16781": {
+            "minimumRSSKiB": 243296,
+            "maximumRSSKiB": 258592,
+            "maximumSampledCPUPercent": 59.3
+          }
+        }
+      }
+    ]
+  },
+  "runs": {
+    "gt-small-final": {
+      "runtime": "fanout_users_bab724c655bd",
+      "reportSHA256": "fabcf8b6f1f6c85e6e3ae894331e592f33c1c101e2ce660dd919e797db3c617a",
+      "sourceSHA256": {
+        "controller": "d5c08ee0406658b7a7c674f08d325064a223ffd38825c1c12946946a3ea17139",
+        "runtimeConfiguration": "6b9fe6480c3747800493b1415369624e0698599ed19e0e79ef5b41119a01ff9c",
+        "swiftWorker": "1359410c792e46347ac6e3cbb99544a8860926df39614f74720d41f7ecbf928d",
+        "swiftTransport": "2f7a9ac43ffdbefb4409c159b12aaacbb4d18ebd41b0e26d8d3ee07ed357bfb6"
+      },
+      "mcpGate": {
+        "servers": 1,
+        "originalRegistriesRestored": true,
+        "preexistingCalls": 1,
+        "state": "released",
+        "quiescenceElapsedMillis": 352,
+        "refusedCalls": 0
+      },
+      "cleanup": {
+        "zeroIdleReads": true,
+        "readSamples": 182,
+        "zeroIdleReceiveRequests": true,
+        "createdUsers": [
+          "fanout_users_bab724c655bd_1:user0:r403:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "fanout_users_bab724c655bd_1:user1:r404:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "fanout_users_bab724c655bd_1:user2:r405:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "fanout_users_bab724c655bd_8:user0:r403:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "fanout_users_bab724c655bd_8:user1:r404:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "fanout_users_bab724c655bd_8:user2:r405:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "fanout_users_bab724c655bd_32:user0:r403:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "fanout_users_bab724c655bd_32:user1:r404:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "fanout_users_bab724c655bd_32:user2:r405:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        ],
+        "idleChecks": 0,
+        "buffersReleased": true,
+        "runtimeStopped": true,
+        "runtimeUnregistered": true,
+        "inMemoryFinalizations": 1212,
+        "volatileAuthority": true,
+        "createdFromConfiguration": true,
+        "library": "/opt/git/BenjaVisionPro/catalyst-workspace/recovery/quic-push-20261029/ordered-native/aarch64-apple-darwin/release/libcatalyst_connect.dylib"
+      }
+    },
+    "gt-60-final": {
+      "runtime": "fanout_users_35c2e311444c",
+      "reportSHA256": "734378b3454d5e8c26c03b36cd59f1ead45cd3cde7e9976c51cdd487625f9808",
+      "sourceSHA256": {
+        "controller": "6cb2d21af0dff9b2883f2b2d724e18ce1e9e9ceef49bda9bc09ecd1482203fa6",
+        "runtimeConfiguration": "937cace77689c01185d407b385b4283702db6d7a7b130b71a12afaab8822668f",
+        "swiftWorker": "1359410c792e46347ac6e3cbb99544a8860926df39614f74720d41f7ecbf928d",
+        "swiftTransport": "2f7a9ac43ffdbefb4409c159b12aaacbb4d18ebd41b0e26d8d3ee07ed357bfb6"
+      },
+      "mcpGate": {
+        "servers": 1,
+        "originalRegistriesRestored": true,
+        "preexistingCalls": 1,
+        "state": "released",
+        "quiescenceElapsedMillis": 370,
+        "refusedCalls": 0
+      },
+      "cleanup": {
+        "zeroIdleReads": true,
+        "readSamples": 261,
+        "zeroIdleReceiveRequests": true,
+        "createdUsers": [
+          "fanout_users_35c2e311444c_60:user0:r403:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "fanout_users_35c2e311444c_60:user1:r404:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "fanout_users_35c2e311444c_60:user2:r405:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        ],
+        "idleChecks": 0,
+        "buffersReleased": true,
+        "runtimeStopped": true,
+        "runtimeUnregistered": true,
+        "inMemoryFinalizations": 405,
+        "volatileAuthority": true,
+        "createdFromConfiguration": true,
+        "library": "/opt/git/BenjaVisionPro/catalyst-workspace/recovery/quic-push-20261029/ordered-native/aarch64-apple-darwin/release/libcatalyst_connect.dylib"
+      }
+    },
+    "gemstone": {
+      "runtime": "fanout_users_1099d17d7ee2",
+      "reportSHA256": "c3e4616abc7033bc88ccf22162045604048b55349601a5c701874953c666a867",
+      "sourceSHA256": {
+        "controller": "d5c08ee0406658b7a7c674f08d325064a223ffd38825c1c12946946a3ea17139",
+        "runtimeConfiguration": "6b9fe6480c3747800493b1415369624e0698599ed19e0e79ef5b41119a01ff9c",
+        "swiftWorker": "1359410c792e46347ac6e3cbb99544a8860926df39614f74720d41f7ecbf928d",
+        "swiftTransport": "2f7a9ac43ffdbefb4409c159b12aaacbb4d18ebd41b0e26d8d3ee07ed357bfb6"
+      },
+      "mcpGate": {
+        "servers": 1,
+        "originalRegistriesRestored": true,
+        "preexistingCalls": 1,
+        "state": "released",
+        "quiescenceElapsedMillis": 329,
+        "refusedCalls": 0
+      },
+      "cleanup": {
+        "removedUsers": 12,
+        "originalUsersPreserved": true,
+        "phase": "cleanup",
+        "runtime": "fanout_users_1099d17d7ee2",
+        "gateRestored": true
+      },
+      "persistence": {
+        "defaultTransactionalWorker": true,
+        "committedPublicationSamplesRetained": 405,
+        "runtime": "fanout_users_1099d17d7ee2",
+        "phase": "fanoutVerify",
+        "independentGemRead": true,
+        "expectedUsersPersisted": true,
+        "userCount": 12
+      }
+    }
+  },
+  "checks": {
+    "nativeCombinationsPassed": 8,
+    "allLatestStatesConverged": true,
+    "stableCachedCUUserIdentityForHealthyObservers": true,
+    "slowUserIdentifiersPreserved": true,
+    "slowNativeNotificationCreditsExhaustedAtFour": true,
+    "stalledStreamRpcProgress": true,
+    "noUserReadsOrRenewalsDuringBurstsAndFinalIdle": true,
+    "pendingStatesPerFeedNeverAboveThree": true,
+    "nativeRecordsAndPayloadBoundsVerified": true,
+    "existing32Call4096ByteDriveBudgetsRetained": true,
+    "positiveNativeCleanupAndNormalRuntimeStopRemove": true,
+    "developmentRuntimeProcessesPreserved": true,
+    "allMcpGatesReleasedAndRestored": true,
+    "gemstoneFinalStatesIndependentlyVerified": 12,
+    "originalFailedFixtureStoppedWithEvidenceUnchanged": true,
+    "originalWorkReplayed": false
+  },
+  "implementation": {
+    "runtimeOrRoutingChanges": false,
+    "nativeABI": 2,
+    "alpn": "catalyst-connect/2",
+    "authorityChanges": "Opt-in qualification configuration and diagnostic fixture only",
+    "swiftFix": "Retry only refused local owner admission within the existing connect timeout; cancel/close generation guard; read-only existing native counters",
+    "gtRebuild": false,
+    "connectHarnessChanged": false
+  },
+  "sourceVerification": {
+    "gt": [
+      [
+        "BVC-Users-Connect-Tests",
+        35
+      ],
+      [
+        "BVC-Users-Connect-Tests-GT",
+        6
+      ]
+    ],
+    "gemstone": {
+      "originalFixtureStoppedWithEmptyQueues": true,
+      "definitionsVerified": 35
+    },
+    "standalonePinnedUsersSchemaTestsPassed": 5
+  },
+  "unsuccessfulAttemptsPreserved": {
+    "gt-2": {
+      "error": "TimeoutError('/opt/git/BenjaVisionPro/catalyst-workspace/recovery/user-fanout-20261029/gt-2/native-latest.json')",
+      "completedProfiles": [],
+      "mcpRestored": true,
+      "runtimeStopped": true,
+      "reportSHA256": "9de70d5b48878449e036b620ece1d8b1b361c9203f3510873eda0378a3672792"
+    },
+    "gt-5": {
+      "error": "AssertionError('Slow streams did not reach application backpressure')",
+      "completedProfiles": [
+        1,
+        8,
+        32
+      ],
+      "mcpRestored": true,
+      "runtimeStopped": true,
+      "reportSHA256": "1569d59d4d7aed0a65a3cee776bbfd10d6add45b0baf7df6f9655caef13b0b4c"
+    },
+    "gt-4": {
+      "error": "RuntimeError('Client process failed; inspect preserved client logs')",
+      "completedProfiles": [],
+      "mcpRestored": true,
+      "runtimeStopped": true,
+      "reportSHA256": "fd758a5cee3d9228180554f41c8928e1db5261238af2b4453220e95a9eafd7e3"
+    },
+    "gt-3": {
+      "error": "RuntimeError('Client process failed; inspect preserved client logs')",
+      "completedProfiles": [
+        1
+      ],
+      "mcpRestored": true,
+      "runtimeStopped": true,
+      "reportSHA256": "ae52bfa6703c184112827baac484da267370b3ffbee202889309f296840aa087"
+    },
+    "gt-60": {
+      "error": "RuntimeError('Client process failed; inspect preserved client logs')",
+      "completedProfiles": [],
+      "mcpRestored": true,
+      "runtimeStopped": true,
+      "reportSHA256": "b0d4051ca8312c9c2c0447eda3d387562fbc29d4025caf610b9dd73f4a72afd5"
+    },
+    "gt": {
+      "error": "UnicodeDecodeError('utf-8', b'ps: Invalid process id: H\\xa0\\xdfm\\\\001\\n', 25, 26, 'invalid start byte')",
+      "completedProfiles": [],
+      "mcpRestored": true,
+      "runtimeStopped": true,
+      "reportSHA256": "336028be0a66607eca3fb6fad2659bbad6c724149d053f31afef53922b3f30e4"
+    }
+  },
+  "preservedEvidenceDirectory": "recovery/user-fanout-20261029",
+  "limits": [
+    "Existing single-listener connection ceiling is 64; Users feed policy permits at most 64 and defaults to 16. Qualification configured 64 feeds.",
+    "Latest-state semantics coalesce intermediate revisions; delivered-state latency is not a guarantee of delivery for every write.",
+    "Controlled close/reconnect on localhost; no abrupt process crash, lossy WAN, multi-host, Unreal or iOS load qualification in this run.",
+    "These workloads establish tested behavior and the local curve, not maximum production throughput or an SLO.",
+    "Client XCTest workers use debug Swift builds; these numbers are not release-client capacity measurements."
+  ],
+  "environment": {
+    "clientBuild": "SwiftPM debug XCTest workers",
+    "nativeBuild": "Rust release, immutable ABI2 library",
+    "authorityBuilds": "Running GT image and native GemStone 3.7.5",
+    "scope": "Local Apple Silicon macOS; sampled runtime diagnostics every 500 ms",
+    "logicalCPUs": 16,
+    "physicalMemoryBytes": 137438953472,
+    "operatingSystem": "Darwin 25.6.0 arm64",
+    "swift": "Apple Swift 6.3.3"
+  },
+  "nativeBuildManifest": {
+    "abi": 2,
+    "alpn": "catalyst-connect/2",
+    "target": "aarch64-apple-darwin",
+    "archive_sha256": "a16309bc89afa45d6a48235d73267f85ddf6a6730381de48301860c70fd0fa0f",
+    "source_sha256": "c2fb25aade591d6771e9924884ffe90981e358f5f93811628793bd88c5d4f052",
+    "header_sha256": "86568c880e81fa46a16ae6fcb1b46a0144e0dc7d7a35662191b626a35800db80",
+    "cargo_lock_sha256": "9eec8378686ea66b5cd79a462f7da4d6fcb48b48bee60b107f751dfaf5dafab6",
+    "rustc": "rustc 1.96.1 (31fca3adb 2026-06-26)"
+  },
+  "nativeLibrarySHA256": "63674c67f8c2b482669aa19ca2bdc494ec4879d2ca72b89a8a72aaaecb05da91",
+  "evidence": "https://github.com/BenjaVisionPro/catalyst-workspace/blob/main/Connect/evidence/user-server-push-fanout-2026-10-29.json"
+}
