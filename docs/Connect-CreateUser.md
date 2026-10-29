@@ -48,28 +48,36 @@ Server-owned fields are read-only in live descriptions. The transfer constructs
 inert installed values before applying a state; peer bytes never choose code,
 classes, selectors or destinations. UI generation itself is future work.
 
-The authority pushes full-state changes through one server-held change receive per
-client scope. Subscriptions are by stable identity, with pending changes coalesced
-to the latest state for each User. No periodic User reads occur while idle. This
-uses Connect's existing bounded deferred request/reply path; the receive is renewed
-after an event or a lease heartbeat. It does not add unsolicited native frames,
-another socket, a broker, or an event history. Acknowledgment removes a queued
-revision only if it is still the acknowledged revision; later changes remain queued.
+Configure the Connect endpoint with `nativeProtocolVersion: 2` and the matching
+ABI2 library. ABI1 remains available for existing immutable native owners; the
+Users notification operation requires the version 2 subscription path.
+
+The authority publishes full-state changes over the connection’s server-initiated
+reliable QUIC notification stream. Operation 8 is a one-time native subscription
+setup; it returns `subscribed` and grants a session-scoped target for subsequent
+notifications. Operations 7/9 add/remove watched identities. Ordinary RPC to
+operation 8 is refused. There are no receive/renewal or per-event acknowledgment
+RPCs. Latest state is coalesced by User identity until native publication accepts
+a byte copy; QUIC then handles reliable delivery and flow control. A later revision
+is never removed by acceptance of an earlier one. This does not retain event history.
 
 The service stages identities and submits one coalesced publication WorkUnit over
 its existing Runtime route. That work rereads authoritative state. Its completion
 updates feeds only after Runtime finalization and, in GemStone, confirmed commit.
 Staging can survive a failed body without leaking that body's values: the follow-up
 read sees the rolled-back revision and unchanged states are suppressed. Native I/O
-still runs only on Connect's original owner. Held receives use the existing idle
-schedule and do not continuously request immediate progress.
+still runs only on Connect's original owner. Persistent publishers use the existing idle
+schedule and bounded Connect drive budgets. Slow consumers retain bounded state
+without blocking the independent RPC stream.
 
 `CUUsersConfiguration` adds maximumFeeds (default16), maximumUsersPerFeed (256),
-receiveWaitMillis (15000) and feedLeaseMillis (60000). Configuration validation
+and feedLeaseMillis (60000) for unclaimed feeds. Active publishers do not expire
+or send lease-renewal traffic. Configuration validation
 bounds these, and existing effective-copy/reconciliation applies changes. A service
 reconfiguration closes old feeds; clients resubscribe and resnapshot. Existing
 plain CRServiceConfiguration Users deployments retain these defaults. Feed state
-is activation-local, expires after abandonment, and is cleared on stop. It never
+is activation-local, closes on native target revocation/disconnect or service scope
+invalidation, and is cleared on stop. It never
 enters the persistent Users model or durable work queue.
 
 Notifications follow mutations through the configured Users API. Direct repository

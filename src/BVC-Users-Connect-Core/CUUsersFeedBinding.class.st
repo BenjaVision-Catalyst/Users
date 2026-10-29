@@ -18,3 +18,8 @@ CUUsersFeedBinding >> completeResult: result response: response probe: probe [
 CUUsersFeedBinding >> newResponse [
  ^ CUUsersFeedResponse new
 ]
+
+{ #category : 'push updates' }
+CUUsersFeedBinding >> supportsSubscription [
+ ^ true
+]

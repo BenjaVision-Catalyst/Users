@@ -18,9 +18,9 @@ phase = 'configure' ifTrue: [
  (parameters at: 'clients') do: [:spec | | connect target identifier |
   identifier := ('connect_', (spec at: 'name')) asSymbol.
   file := GsFile openReadOnServer: (spec at: 'serverOptions').
-  [connect := CCQuicConfiguration new identifier: identifier; label: 'Platform Users endpoint';
+  [connect := CCQuicConfiguration new nativeProtocolVersion: 2; identifier: identifier; label: 'Platform Users endpoint';
    nativeOptionsJson: file contents; libraryPath: (parameters at: 'library'); principal: (spec at: 'name');
-   idleMillis: 5; allowedOperations: #(1 2 3 4 5 6 7 8 9 65534); applicationClass: CUUsersCommitGateApplicationFixture; yourself] ensure: [file close].
+   idleMillis: 20; allowedOperations: #(1 2 3 4 5 6 7 8 9 65534); applicationClass: CUUsersCommitGateApplicationFixture; yourself] ensure: [file close].
   target := CRServiceBindingConfiguration new identifier: #users; label: 'Users'; serviceIdentifier: #users; yourself.
   connect bindings: {target}. services add: connect].
  configuration := CRRuntimeConfiguration new label: 'Native platform Users qualification'; services: services asArray; yourself.
@@ -30,13 +30,14 @@ phase = 'configure' ifTrue: [
  configuration topology: (CRTopologyConfiguration new hosts: {control. application}; placementStrategyConfiguration: CRRoundRobinPlacementStrategyConfiguration new; yourself).
  deployments := services collect: [:service | CRServiceDeploymentConfiguration new serviceIdentifier: service identifier; label: service label; initialCount: 1; yourself].
  configuration deployment serviceDeployments: deployments asArray. configuration failureEvidenceConfiguration captureDebugArtifacts: false.
+ (CRRuntimeConfigurationCodec decodeValue: (CRRuntimeConfigurationCodec encodeValue: services last)) nativeProtocolVersion = 2 ifFalse: [self error: 'Serialized protocol selection lost'].
  configuration validate isValid ifFalse: [self error: 'Invalid platform Users configuration'].
  (GsFile openWriteOnServer: directory, '/runtime.ston') nextPutAll: (CRRuntimeConfigurationCodec toString: configuration); close.
  CRGemStoneRuntime duringTransaction: [UserGlobals at: key put: (Dictionary new at: #originalUsers put: CUUsers allUsers copy; at: #originalGateDirectory put: CUUsersCommitGateMessageFixture gateDirectory; yourself)].
  report at: 'configurationValid' put: true].
 phase = 'gate' ifTrue: [
  client := parameters at: 'activeClient'. gate := client at: 'output'.
- CRGemStoneRuntime duringTransaction: [CUUsersCommitGateMessageFixture gateDirectory: gate. runtime nativeHosts valuesDo: [:host | host executionMetrics maxSamples: 100000]].
+ CRGemStoneRuntime duringTransaction: [CUUsersCommitGateMessageFixture gateDirectory: gate].
  report at: 'trustedGateConfigured' put: true].
 phase = 'beforeCommit' ifTrue: [
  client := parameters at: 'activeClient'. created := CUUsers allUsers select: [:user | user name = ((client at: 'prefix'), ':hold')].
@@ -56,15 +57,17 @@ phase = 'liveAfterCommit' ifTrue: [
  report at: 'independentGemRead' put: true; at: 'oneCommittedIdentity' put: true].
 phase = 'quietBefore' ifTrue: [
  hosts := runtime nativeHosts values select: [:host | ((runtime publications at: host workerIdentifier) serviceHandleForIdentifier: #users) notNil].
- selected := hosts first executionMetrics samples count: [:sample | sample workUnitClass == CUReadLiveUserWork].
- root := UserGlobals at: key.
- CRGemStoneRuntime duringTransaction: [root at: #idleReadCount put: selected].
- report at: 'readCount' put: selected].
+ samples := hosts first executionMetrics samples.
+ selected := samples last sequence. root := UserGlobals at: key.
+ CRGemStoneRuntime duringTransaction: [root at: #idleSequence put: selected].
+ report at: 'sequence' put: selected].
 phase = 'quietAfter' ifTrue: [
  hosts := runtime nativeHosts values select: [:host | ((runtime publications at: host workerIdentifier) serviceHandleForIdentifier: #users) notNil].
- selected := hosts first executionMetrics samples count: [:sample | sample workUnitClass == CUReadLiveUserWork].
- selected = ((UserGlobals at: key) at: #idleReadCount) ifFalse: [self error: 'Idle observers issued User reads'].
- report at: 'readCount' put: selected; at: 'zeroIdleReads' put: true].
+ samples := hosts first executionMetrics samples.
+ selected := (UserGlobals at: key) at: #idleSequence.
+ samples first sequence > (selected + 1) ifTrue: [self error: 'Idle audit window was evicted'].
+ (samples anySatisfy: [:sample | sample sequence > selected and: [#(CUReadLiveUserWork CUReceiveUserChangesWork) includes: sample workUnitClass name]]) ifTrue: [self error: 'Idle observers issued reads or subscription renewals'].
+ report at: 'fromSequence' put: selected; at: 'toSequence' put: samples last sequence; at: 'zeroIdleReads' put: true; at: 'zeroIdleReceiveRequests' put: true].
 phase = 'pushBeforeCommit' ifTrue: [
  client := parameters at: 'activeClient'. created := CUUsers allUsers select: [:user | user name = ((client at: 'prefix'), ':push-held')].
  created isEmpty ifFalse: [self error: 'Held edit visible before commit'].
@@ -80,7 +83,7 @@ phase = 'verifyPush' ifTrue: [
  hosts := runtime nativeHosts values select: [:host | ((runtime publications at: host workerIdentifier) serviceHandleForIdentifier: #users) notNil].
  samples := hosts first executionMetrics samples.
  selected := samples count: [:sample | sample workUnitClass == CUReadLiveUserWork].
- selected <= ((parameters at: 'clients') size * 8) ifFalse: [self error: 'Unexpected read count; idle clients must not poll Users'].
+ report at: 'subscriptionSetupAndProbeSamples' put: (samples count: [:sample | sample workUnitClass == CUReceiveUserChangesWork]).
  report at: 'readAndProbeSamples' put: selected; at: 'noPeriodicReads' put: true.
  selected := samples select: [:sample | sample workUnitClass == CUUsersFlushWork].
  (selected notEmpty and: [selected allSatisfy: [:sample | sample isSuccessful and: [sample transactionOutcome = #committed and: [sample completionRecordingOutcome = #recorded]]]]) ifFalse: [self error: 'Push publication commit evidence missing'].
@@ -97,7 +100,7 @@ phase = 'verify' ifTrue: [
  samples := hosts first executionMetrics samples select: [:sample | sample workUnitClass == CUCreateLiveUserGateWork].
  (samples notEmpty and: [samples allSatisfy: [:sample | sample completionRecordingOutcome = #recorded]]) ifFalse: [self error: 'Commit completion evidence missing'].
  (hosts first failures asArray anySatisfy: [:failure | failure errorMessage includesSubstring: 'Qualification failure after live Users insertion.']) ifFalse: [self error: 'Post-insertion rollback evidence missing'].
- report at: 'lookupSamples' put: ((hosts first executionMetrics samples select: [:sample | sample workUnitClass == CUReadLiveUserWork]) collect: [:sample |
+ report at: 'lookupSamples' put: ((hosts first executionMetrics samples select: [:sample | (#(CUReadLiveUserWork CUReceiveUserChangesWork) includes: sample workUnitClass name)]) collect: [:sample |
   (sample isSuccessful and: [sample transactionOutcome = #committed and: [sample completionRecordingOutcome = #recorded]]) ifFalse: [self error: 'Lookup did not use committed Runtime completion'].
   {sample isSuccessful. sample transactionOutcome asString. sample completionRecordingOutcome asString}]) asArray.
  (report at: 'lookupSamples') isEmpty ifTrue: [self error: 'No authoritative lookup execution evidence'].

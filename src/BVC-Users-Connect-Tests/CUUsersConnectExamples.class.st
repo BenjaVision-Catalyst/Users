@@ -37,12 +37,12 @@ CUUsersConnectExamples >> testChangeFeedCoalescesAndRequiresAcknowledgment [
  state := CULiveUserState new name: 'second'; userIdentifier: 'id'; revision: 2; outcome: 'current'; yourself.
  feed publish: state. state := CULiveUserState new name: 'third'; userIdentifier: 'id'; revision: 3; outcome: 'current'; yourself. feed publish: state.
  self should: [feed register: 'other' revision: 1] raise: Error.
- ticket := feed beginWait.
+ ticket := feed beginPush.
  self assert: (feed peekFor: ticket) revision equals: 3.
- self should: [feed beginWait] raise: Error.
+ self should: [feed beginPush] raise: Error.
  feed acknowledge: 'id' revision: 2. self assert: (feed peekFor: ticket) revision equals: 3.
  feed acknowledge: 'id' revision: 3. self assert: (feed peekFor: ticket) isNil.
- feed close. self assert: (feed peekFor: ticket) outcome equals: 'closed'. feed endWait: ticket. ^ feed
+ feed close. self assert: (feed peekFor: ticket) outcome equals: 'closed'. feed endPush: ticket. ^ feed
 ]
 
 { #category : 'tests' }
@@ -72,18 +72,21 @@ CUUsersConnectExamples >> testConfiguredBindingRetainsUsersTransactionAndCapabil
 ]
 
 { #category : 'push updates' }
-CUUsersConnectExamples >> testFeedResponseWaitsForStateInsteadOfReadingUsers [
+CUUsersConnectExamples >> testFeedResponseIsPersistentPushRegistration [
  <gtExample>
  <return: #CUUsersFeedResponse>
- | feed response state schema |
+ | feed response incoming schema publication |
  schema := CCObjectStateSchema forObject: (CULiveUserState outcome: '').
  feed := CUUsersChangeFeed new configure: CUUsersConfiguration new; yourself.
  feed register: 'id' revision: 1.
  response := CUUsersFeedResponse new attach: feed schema: schema; yourself.
- self deny: response isReady.
- state := CULiveUserState new name: 'Changed'; userIdentifier: 'id'; revision: 2; outcome: 'current'; yourself.
- feed publish: state. self assert: response isReady.
- self assert: (schema decode: response response first) name equals: 'Changed'. ^ response
+ self assert: response isReady. self assert: response isPushRegistration.
+ self assert: (schema decode: response response first) outcome equals: 'subscribed'.
+ incoming := CULiveUserState new name: 'Changed'; userIdentifier: 'id'; revision: 2; outcome: 'current'; yourself.
+ feed publish: incoming.
+ self assert: feed hasPublisher.
+ self should: [feed beginPush] raise: Error.
+ response close. self deny: feed isActive. self deny: feed hasPublisher. ^ response
 ]
 
 { #category : 'tests - live objects' }
@@ -179,6 +182,20 @@ CUUsersConnectExamples >> testPlatformQualificationRetainsCommitContract [
  completion := CCObjectResultCompletion new binding: binding response: CCObjectDeferredResponse new probe: false.
  self assert: completion afterCommit. self assert: completion afterFinalization.
  ^ binding
+]
+
+{ #category : 'push updates' }
+CUUsersConnectExamples >> testSubscriptionModeIsCheckedBeforeRouting [
+ <gtExample>
+ <return: #CCObjectApplication>
+ | application cfg response |
+ cfg := self configuration allowedOperations: #(1 2 3 4 5 6 7 8 9 65534); yourself.
+ application := CUUsersObjectApplication new configure: cfg; yourself.
+ response := application execute: (CCQuicRequest new operation: 8; body: #[]; principal: cfg principal; yourself) using: nil.
+ self assert: response response second equals: 400.
+ response := application execute: (CCQuicRequest new operation: 3; subscription: true; body: #[]; principal: cfg principal; yourself) using: nil.
+ self assert: response response second equals: 400.
+ ^ application
 ]
 
 { #category : 'tests' }

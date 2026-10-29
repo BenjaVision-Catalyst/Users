@@ -1,5 +1,5 @@
 "
-Activation-local, peer-and-client-scoped feed. Coalesces the latest committed User state by identity, retains it until acknowledgment, and permits one receive ticket. Uses the Runtime lifecycle mutex; never store this in persistent Users.
+Activation-local, peer-and-client-scoped latest-state feed. Coalesces finalized User state by identity and retains it until native publication accepts a byte copy. One persistent publisher owns the feed. Uses the existing Runtime lifecycle mutex; never store this in persistent Users.
 "
 Class {
 	#name : 'CUUsersChangeFeed',
@@ -12,7 +12,6 @@ Class {
 		'active',
 		'lastUsed',
 		'maximumUsers',
-		'waitMillis',
 		'mutex'
 	],
 	#category : 'BVC-Users-Runtime',
@@ -30,37 +29,40 @@ CUUsersChangeFeed >> acknowledge: identifier revision: version [
 ]
 
 { #category : 'push updates' }
-CUUsersChangeFeed >> beginWait [
+CUUsersChangeFeed >> beginPush [
  ^ mutex critical: [
- (active and: [ticket isNil]) ifFalse: [self error: 'One active receive per Users feed.'].
- self touch. ticket := Object new. ^ ticket
- ]
+ (active and: [ticket isNil]) ifFalse: [self error: 'One active publisher per Users feed.'].
+ self touch. ticket := Object new. ticket]
 ]
 
 { #category : 'push updates' }
 CUUsersChangeFeed >> close [
- ^ mutex critical: [
- active := false. pending removeAll. order removeAll. identities removeAll
- ]
+ ^ mutex critical: [active := false. ticket := nil. pending := Dictionary new. order := OrderedCollection new. identities := Dictionary new]
 ]
 
 { #category : 'push updates' }
 CUUsersChangeFeed >> configure: policy [
- ^ mutex critical: [
- maximumUsers := policy maximumUsersPerFeed. waitMillis := policy receiveWaitMillis
- ]
+ ^ mutex critical: [maximumUsers := policy maximumUsersPerFeed]
 ]
 
 { #category : 'push updates' }
-CUUsersChangeFeed >> endWait: stamp [
- ^ mutex critical: [
- ticket == stamp ifTrue: [ticket := nil. self touch]
- ]
+CUUsersChangeFeed >> endPush: stamp [
+ ^ mutex critical: [ticket == stamp ifTrue: [ticket := nil. self touch]]
+]
+
+{ #category : 'push updates' }
+CUUsersChangeFeed >> hasPublisher [
+ ^ mutex critical: [ticket notNil]
 ]
 
 { #category : 'push updates' }
 CUUsersChangeFeed >> initialize [
  super initialize. mutex := CRPlatform current newRuntimeLifecycleMutex. identities := Dictionary new. pending := Dictionary new. order := OrderedCollection new. active := true. self touch
+]
+
+{ #category : 'push updates' }
+CUUsersChangeFeed >> isActive [
+ ^ mutex critical: [active]
 ]
 
 { #category : 'push updates' }
@@ -73,8 +75,8 @@ CUUsersChangeFeed >> lastUsed [
 { #category : 'push updates' }
 CUUsersChangeFeed >> peekFor: stamp [
  ^ mutex critical: [
- ticket == stamp ifFalse: [^ CULiveUserState outcome: 'refused'].
  active ifFalse: [^ CULiveUserState outcome: 'closed'].
+ ticket == stamp ifFalse: [^ CULiveUserState outcome: 'refused'].
  ^ order ifEmpty: [nil] ifNotEmpty: [pending at: order first]
  ]
 ]
@@ -111,13 +113,6 @@ CUUsersChangeFeed >> touch [
 CUUsersChangeFeed >> unregister: identifier [
  ^ mutex critical: [
  identities removeKey: identifier ifAbsent: []. pending removeKey: identifier ifAbsent: []. order remove: identifier ifAbsent: []. self touch
- ]
-]
-
-{ #category : 'push updates' }
-CUUsersChangeFeed >> waitMillis [
- ^ mutex critical: [
- ^ waitMillis
  ]
 ]
 

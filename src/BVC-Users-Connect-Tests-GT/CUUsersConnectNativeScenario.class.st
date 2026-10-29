@@ -57,7 +57,7 @@ CUUsersConnectNativeScenario >> runConfiguration: connectConfiguration cases: ca
  ^ evidence
 ]
 
-{ #category : 'native validation' }
+{ #category : 'push updates' }
 CUUsersConnectNativeScenario >> runServerConfigurations: specifications directory: directory [
  | configuration orchestrator host services deployments worker usersService connects original prefix results originalGate deadline idleStarts idleChecks |
  prefix := (STONJSON fromString: (directory / 'parameters.json') contents) at: 'prefix'.
@@ -65,9 +65,9 @@ CUUsersConnectNativeScenario >> runServerConfigurations: specifications director
  orchestrator := CROrchestrationConfiguration default heartbeatIntervalMillis: 500; reconcileIntervalMillis: 100; yourself.
  services := OrderedCollection with: orchestrator with: (CUUsersConfiguration new identifier: #users; label: 'Volatile authoritative Users'; authoritative: true; yourself).
  specifications do: [:spec | | cfg |
-  cfg := CCQuicConfiguration new identifier: ('connect_', (spec at: 'name')) asSymbol; label: 'Users native server';
-   nativeOptionsJson: (spec at: 'serverOptions') asFileReference contents; libraryPath: (CCPharoQuicNative loadedPath ifNil: [spec at: 'library']);
-   principal: (spec at: 'name'); idleMillis: 5; allowedOperations: #(1 2 3 4 5 6 7 8 9 65534); applicationClass: CUUsersCommitGateApplicationFixture;
+  cfg := CCQuicConfiguration new nativeProtocolVersion: 2; identifier: ('connect_', (spec at: 'name')) asSymbol; label: 'Users native server';
+   nativeOptionsJson: (spec at: 'serverOptions') asFileReference contents; libraryPath: (CCPharoQuicPushNative loadedPath ifNil: [spec at: 'library']);
+   principal: (spec at: 'name'); idleMillis: 20; allowedOperations: #(1 2 3 4 5 6 7 8 9 65534); applicationClass: CUUsersCommitGateApplicationFixture;
    bindings: {CRServiceBindingConfiguration new identifier: #users; serviceIdentifier: #users; yourself}; yourself.
   services add: cfg].
  configuration := CRRuntimeConfiguration new label: 'GT Users authority qualification'; services: services asArray; yourself.
@@ -76,7 +76,7 @@ CUUsersConnectNativeScenario >> runServerConfigurations: specifications director
  deployments := services collect: [:service | CRServiceDeploymentConfiguration new serviceIdentifier: service identifier; label: service label; initialCount: 1; yourself].
  configuration deployment serviceDeployments: deployments asArray. configuration failureEvidenceConfiguration captureDebugArtifacts: false.
  self assert: configuration validate isValid. runtime := CRRuntime new.
- idleStarts := Dictionary new. idleChecks := Set new. results := Dictionary new at: 'createdFromConfiguration' put: true; at: 'volatileAuthority' put: true; at: 'library' put: (CCPharoQuicNative loadedPath ifNil: [(specifications first at: 'library')]); yourself.
+ idleStarts := Dictionary new. idleChecks := Set new. results := Dictionary new at: 'createdFromConfiguration' put: true; at: 'volatileAuthority' put: true; at: 'library' put: (CCPharoQuicPushNative loadedPath ifNil: [(specifications first at: 'library')]); yourself.
  [runtime configure: configuration. runtime start.
  (Delay forMilliseconds: 1000) wait.
  CRPlatform current writeConnectEvidence: (Dictionary new at: 'workers' put: ((CRPharoWorker allInstances select: [:each | each runtime == runtime]) collect: [:each |
@@ -100,15 +100,17 @@ CUUsersConnectNativeScenario >> runServerConfigurations: specifications director
   specifications do: [:client | | clientDirectory clientKey count |
    clientDirectory := (client at: 'output') asFileReference. clientKey := client at: 'prefix'.
    ((clientDirectory / 'idle-start.json') exists and: [(idleStarts includesKey: clientKey) not]) ifTrue: [
-    count := (worker workerHandle statistics at: #workUnitExecution) samples count: [:sample | sample workUnitClass == CUReadLiveUserWork].
+    count := (worker workerHandle statistics at: #workUnitExecution) samples last sequence.
     idleStarts at: clientKey put: count].
    ((clientDirectory / 'idle-end.json') exists and: [(idleStarts includesKey: clientKey) and: [(idleChecks includes: clientKey) not]]) ifTrue: [
-    count := (worker workerHandle statistics at: #workUnitExecution) samples count: [:sample | sample workUnitClass == CUReadLiveUserWork].
-    self assert: count equals: (idleStarts at: clientKey). idleChecks add: clientKey.
-    CRPlatform current writeConnectEvidence: (Dictionary new at: 'zeroIdleReads' put: true; yourself) to: (clientDirectory / 'idle-proof.json') fullName]].
+    count := (worker workerHandle statistics at: #workUnitExecution) samples count: [:sample | (#(CUReadLiveUserWork CUReceiveUserChangesWork) includes: sample workUnitClass name)].
+    self deny: ((worker workerHandle statistics at: #workUnitExecution) samples anySatisfy: [:sample |
+ sample sequence > (idleStarts at: clientKey) and: [#(CUReadLiveUserWork CUReceiveUserChangesWork) includes: sample workUnitClass name]]).
+ idleChecks add: clientKey.
+    CRPlatform current writeConnectEvidence: (Dictionary new at: 'zeroIdleReads' put: true; at: 'zeroIdleReceiveRequests' put: true; yourself) to: (clientDirectory / 'idle-proof.json') fullName]].
   (Delay forMilliseconds: 10) wait].
  self assert: (directory / 'server-stop') exists.
- results at: 'zeroIdleReads' put: true; at: 'idleChecks' put: idleChecks size.
+ results at: 'zeroIdleReads' put: true; at: 'zeroIdleReceiveRequests' put: true; at: 'idleChecks' put: idleChecks size.
  results at: 'readSamples' put: ((worker workerHandle statistics at: #workUnitExecution) samples count: [:sample | sample workUnitClass == CUReadLiveUserWork]).
  results at: 'createdUsers' put: ((CUUsers allUsers select: [:user | user name beginsWith: prefix]) collect: #name) asArray.
  results at: 'inMemoryFinalizations' put: ((worker workerHandle statistics at: #workUnitExecution) samples select: [:sample | sample workUnitClass == CUUsersFlushWork]) size

@@ -46,7 +46,7 @@ CUUsersService >> drainChanges [
 CUUsersService >> feedFor: change principal: principal create: create [
  | key current expired now |
  now := CRPlatform current currentMillis.
- expired := feeds keys select: [:each | now - (feeds at: each) lastUsed > self feedPolicy feedLeaseMillis].
+ expired := feeds keys select: [:each | (feeds at: each) isActive not or: [(feeds at: each) hasPublisher not and: [now - (feeds at: each) lastUsed > self feedPolicy feedLeaseMillis]]].
  expired do: [:each | (feeds removeKey: each) close].
  key := {principal copy. change operationIdentifier copy}.
  current := feeds at: key ifAbsent: [nil].
