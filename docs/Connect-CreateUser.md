@@ -1,4 +1,4 @@
-# Users creation through Connect
+# Users API through Connect
 
 The optional `connect` load group adds `BVC-Users-Connect-Core`. Default Users
 loading still selects only `BVC-Users-Core` and `BVC-Users-Runtime`.
@@ -167,3 +167,47 @@ See [platform qualification](../conformance/platform-create-user-2026-10-29.json
 macOS Swift, iOS Simulator and UE5.8 Mac arm64 are exercised. The unsigned iOS device
 build is qualified separately; physical-device execution, full description discovery,
 relations and release-catalog conformance are not claimed.
+
+## Exact-name lookup from Unreal and Swift
+
+Enable operation `2` alongside `1` and `65534` to expose `getUser`. Existing
+creation-only configurations remain valid. The same configured Connect application
+selects an installed binding per operation; each binding has its own description
+agreement and routes through the existing `#users` capability/service.
+
+`CUUsers getUser: exactName` returns the matching stored user, nil when absent,
+and signals `CUAmbiguousUserError` if multiple users have that exact name. Matching
+is case-sensitive without trimming or normalization. Creation still permits
+repeated names; lookup never selects an arbitrary match. This temporary lookup
+key will need revisiting when stable user identifiers and tenant storage arrive.
+
+The name-only `CUUserLookup` request reuses `CUUser`'s name description with local
+native accessors. Successful replies use the unchanged `CUUser` description and
+construct a fresh native user. Missing names produce an empty status404 reply;
+ambiguous names produce an empty status422 refusal. Only the installed lookup
+binding maps these domain outcomes. Runtime publishes them through its existing
+transactional `afterCommit`/`afterFinalization` completion path. Transport loss,
+failed execution or stale service scope remain uncertain outcomes, rather than
+being mistaken for absence.
+
+```swift
+try await users.prepare() // Establish both operation agreements after connecting.
+if let user = try await users.getUser(named: "Ada") {
+    // Native CUUser from the authoritative GemStone service.
+} else {
+    // Explicit not-found response; no unknownUser substitution.
+}
+// Ambiguous names throw ObjectBindingError.refused(status: 422).
+```
+
+In Unreal, call `UCUSubsystem::GetUser(Name, Callback)` after `Prepare`.
+`Completed` carries `FCUUser`; `NotFound` distinguishes absence; `Refused` includes
+ambiguous-name rejection. Consume the user argument only for `Completed`.
+Both bindings require fresh agreement after reconnect, and neither API replays
+requests automatically.
+
+The same platform qualification runner now checks lookup of the newly committed
+user, `admin`, `unknownUser`, absent and differently cased names, ambiguous names,
+rolled-back creations, Unicode names and reconnect. A separate Gem verifies the
+store contents; published worker execution evidence verifies lookup commit and
+completion recording. See [lookup qualification](../conformance/platform-get-user-2026-10-29.json).

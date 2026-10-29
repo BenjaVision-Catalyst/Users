@@ -1,0 +1,122 @@
+{
+  "date": "2026-10-29",
+  "passed": true,
+  "scope": "Unreal UE5.8 Mac arm64 and Swift macOS/iOS26.5 Simulator -> authoritative Users service in configured GemStone Runtime",
+  "runtime": "platform_users_6f1a6605bc8f",
+  "lookup": "Exact case-sensitive name; explicit not-found; ambiguous names refused",
+  "operation": 2,
+  "schemas": {
+    "request": "31b7f14dece1b6bbf864672c923ae7a0170b058c053bec846e9db8be5ed0e8f1",
+    "result": "742282f3bd6d47c824c6c12a2244dcb79ac5b13ba1d94aa4bd60b843608185cb",
+    "requestReusesUserNameDescription": true,
+    "resultReusesUnchangedUserDescription": true
+  },
+  "clients": {
+    "swift-macos": {
+      "passed": true,
+      "noSuccessBeforeCommit": true,
+      "independentGemRead": true,
+      "nativeResult": true,
+      "rollbackUnknown": true,
+      "superUserUnknown": true,
+      "mismatchRefused": true,
+      "explicitReconnect": true,
+      "noAutomaticReplay": true,
+      "lookupFound": true,
+      "lookupNotFound": true,
+      "lookupAmbiguousRefused": true,
+      "lookupExactName": true,
+      "lookupDefaults": true,
+      "lookupRollbackAbsent": true,
+      "lookupUnicode": true
+    },
+    "swift-ios": {
+      "passed": true,
+      "noSuccessBeforeCommit": true,
+      "independentGemRead": true,
+      "nativeResult": true,
+      "rollbackUnknown": true,
+      "superUserUnknown": true,
+      "mismatchRefused": true,
+      "explicitReconnect": true,
+      "noAutomaticReplay": true,
+      "lookupFound": true,
+      "lookupNotFound": true,
+      "lookupAmbiguousRefused": true,
+      "lookupExactName": true,
+      "lookupDefaults": true,
+      "lookupRollbackAbsent": true,
+      "lookupUnicode": true
+    },
+    "unreal": {
+      "passed": true,
+      "noSuccessBeforeCommit": true,
+      "independentGemRead": true,
+      "nativeResult": true,
+      "rollbackUnknown": true,
+      "superUserUnknown": true,
+      "mismatchRefused": true,
+      "explicitReconnect": true,
+      "noAutomaticReplay": true,
+      "lookupFound": true,
+      "lookupNotFound": true,
+      "lookupAmbiguousRefused": true,
+      "lookupExactName": true,
+      "lookupDefaults": true,
+      "lookupRollbackAbsent": true,
+      "lookupUnicode": true
+    }
+  },
+  "sourceVerification": {
+    "authority": "Live GT MCP compilation and export; every definition compared in an independent checkout against the stone",
+    "gtExamplesPassed": 43,
+    "nativePackageDefinitionCounts": {
+      "BVC-Connect-Objects-Core": 67,
+      "BVC-Connect-Objects-Tests": 58,
+      "BVC-Users-Core": 15,
+      "BVC-Users-Runtime": 27,
+      "BVC-Users-Tests": 33,
+      "BVC-Users-Connect-Core": 28,
+      "BVC-Users-Connect-Tests": 21
+    }
+  },
+  "runtimeEvidence": {
+    "defaultWorker": "CRGemStoneWorker",
+    "host": "CRGemStoneWorkerHost",
+    "configuredFromRuntimeConfiguration": true,
+    "existingRoutingAndPublishedEvidence": true,
+    "retainedLookupSamples": 20,
+    "allRetainedLookupSamplesCommittedAndRecorded": true,
+    "onlyExpectedUsersPersisted": true,
+    "createdFixtureUsers": 12
+  },
+  "cleanup": {
+    "removedUsers": 12,
+    "originalUsersPreserved": true,
+    "phase": "cleanup",
+    "runtime": "platform_users_6f1a6605bc8f",
+    "gateRestored": true
+  },
+  "developmentRuntimePreserved": true,
+  "mcpGate": {
+    "servers": 1,
+    "originalRegistriesRestored": true,
+    "preexistingCalls": 1,
+    "state": "released",
+    "quiescenceElapsedMillis": 320,
+    "refusedCalls": 0
+  },
+  "builds": {
+    "unrealEditor": "passed",
+    "unrealGame": "passed",
+    "swiftSchemaTests": 2,
+    "iosArm64UnsignedDevice": "passed",
+    "physicalDeviceExecution": "not run"
+  },
+  "qualification_sha256": "a51bc412a40a401085087f90a2313a6a7785f563ae931a2364452cf204fbd60d",
+  "limitations": [
+    "Installed scalar descriptions only; no graph/4 exchange or remote class/code installation.",
+    "Temporary shared AllUsers store; names remain nonunique and are not stable identifiers.",
+    "Tenant and account authorization remain separate work; uncertain execution is never treated as not-found."
+  ]
+}

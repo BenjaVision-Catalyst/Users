@@ -218,7 +218,9 @@ Smalltalk globals at: {quote(owner)} asSymbol put: run. run snapshot''')
                 assert 'Executed 1 test' in text and '0 failures' in text and 'CU_PLATFORM_RESULT ' in text
             report['clients'][platform] = dict(passed=True, noSuccessBeforeCommit=True, independentGemRead=True,
                                                nativeResult=True, rollbackUnknown=True, superUserUnknown=True,
-                                               mismatchRefused=True, explicitReconnect=True, noAutomaticReplay=True)
+                                               mismatchRefused=True, explicitReconnect=True, noAutomaticReplay=True,
+                                               lookupFound=True, lookupNotFound=True, lookupAmbiguousRefused=True,
+                                               lookupExactName=True, lookupDefaults=True, lookupRollbackAbsent=True, lookupUnicode=True)
             save(); print(platform + ': passed', flush=True)
         phase('verify')
         report['passed'] = True

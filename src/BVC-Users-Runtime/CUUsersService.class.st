@@ -1,5 +1,5 @@
 "
-Users Runtime service. createUser: delegates to the shared CUUsers data API. Runtime owns named placement, capability binding and transaction boundaries. Creating users does not authenticate a caller or establish tenant ownership.
+Authoritative Users Runtime service. Creation and exact-name lookup delegate to CUUsers through the existing named capability and transaction boundaries. Transport trust does not authenticate an account or establish tenant ownership.
 "
 Class {
 	#name : 'CUUsersService',
@@ -14,6 +14,13 @@ CUUsersService >> createUser: aUser [
  (self configuration notNil and: [self configuration isAuthoritative]) ifFalse: [
   CRCapabilityDeniedException signal: 'Users service is not authoritative.'].
  ^ CUUsers createUser: aUser
+]
+
+{ #category : 'users api' }
+CUUsersService >> getUser: exactName [
+ (self isCurrentResultEpoch: self resultEpoch) ifFalse: [CRCapabilityDeniedException signal: 'Users service is not active.'].
+ (self configuration notNil and: [self configuration isAuthoritative]) ifFalse: [CRCapabilityDeniedException signal: 'Users service is not authoritative.'].
+ ^ CUUsers getUser: exactName
 ]
 
 { #category : 'lifecycle' }

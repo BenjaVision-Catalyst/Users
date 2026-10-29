@@ -35,6 +35,15 @@ CUUsers class >> createUser: aUser [
  ^ self addUser: aUser
 ]
 
+{ #category : 'users api' }
+CUUsers class >> getUser: exactName [
+ | matches |
+ exactName isString ifFalse: [self error: 'User name must be text.'].
+ matches := self allUsers select: [:user | user name = exactName].
+ matches size > 1 ifTrue: [CUAmbiguousUserError signal: 'More than one user has this exact name.'].
+ ^ matches ifEmpty: [nil] ifNotEmpty: [matches first]
+]
+
 { #category : 'private' }
 CUUsers class >> newAllUsers [
  ^ OrderedCollection

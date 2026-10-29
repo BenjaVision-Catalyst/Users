@@ -142,6 +142,61 @@ CUUsersExamples >> testDefaultUsers [
  ^ users
 ]
 
+{ #category : 'tests - lookup' }
+CUUsersExamples >> testGetUserRefusesAmbiguousNames [
+ <gtExample>
+ <return: #CUUser>
+ | first second users original |
+ users := CUUsers allUsers. original := users copy.
+ first := CUUser new name: 'Ambiguous lookup example'; yourself.
+ second := CUUser new name: first name; yourself.
+ [CUUsers createUser: first. CUUsers createUser: second.
+ self should: [CUUsers getUser: first name] raise: CUAmbiguousUserError.
+ self assert: users size equals: original size + 2]
+ ensure: [users remove: first ifAbsent: []; remove: second ifAbsent: []].
+ self assert: users equals: original. ^ first
+]
+
+{ #category : 'tests - lookup' }
+CUUsersExamples >> testGetUserRequiresCurrentAuthoritativeCapability [
+ <gtExample>
+ <return: #CUGetUserWorkUnit>
+ | work |
+ work := CUGetUserWorkUnit named: 'admin'.
+ self withWorkerDo: [:worker | | service execution capability |
+ service := worker services serviceAtIdentifier: 'users'.
+ execution := CRWorkUnitExecution envelope: (work asEnvelope serviceIdentifier: 'users'; yourself).
+ worker prepareWorkUnitExecution: execution.
+ self assert: (work executeInContext: execution context) == CUUsers admin.
+ capability := service providedCapabilityIfPresent: CUUsersCapability.
+ worker services stopService: service.
+ self should: [capability getUser: 'admin'] raise: CRCapabilityDeniedException.
+ worker services startServiceIdentifier: 'users'.
+ self should: [capability getUser: 'admin'] raise: CRCapabilityDeniedException.
+ capability := service providedCapabilityIfPresent: CUUsersCapability.
+ worker services applyConfiguration: (service configuration authoritative: false; serviceClass: CUUsersService; yourself) serviceIdentifier: 'users' version: 1.
+ self should: [capability getUser: 'admin'] raise: CRCapabilityDeniedException].
+ self assert: work class requiresTransaction. self deny: work class allowsConflictReplay. ^ work
+]
+
+{ #category : 'tests - lookup' }
+CUUsersExamples >> testGetUserUsesExactNameAndExplicitAbsence [
+ <gtExample>
+ <return: #CUUser>
+ | user users original |
+ users := CUUsers allUsers. original := users copy.
+ user := CUUser new name: 'Exact lookup example'; yourself.
+ [CUUsers createUser: user.
+ self assert: (CUUsers getUser: user name) == user.
+ self assert: (CUUsers getUser: 'exact lookup example') isNil.
+ self assert: (CUUsers getUser: 'No such lookup example') isNil.
+ self assert: (CUUsers getUser: 'admin') == CUUsers admin.
+ self assert: (CUUsers getUser: 'unknownUser') == CUUsers unknownUser.
+ self assert: users size equals: original size + 1]
+ ensure: [users remove: user ifAbsent: []].
+ self assert: users equals: original. ^ user
+]
+
 { #category : 'tests' }
 CUUsersExamples >> testNamedServiceExecutesUsersWork [
 <gtExample>
@@ -172,7 +227,7 @@ CUUsersExamples >> testNonAuthoritativeServiceCannotCreateUser [
   self deny: (users identityIncludes: user) ]
 ]
 
-{ #category : 'tests - loading' }
+{ #category : 'tests' }
 CUUsersExamples >> testProductionAndTestLoadGroupsAreSeparate [
  <gtExample>
  <return: #MetacelloVersion>
@@ -185,8 +240,8 @@ CUUsersExamples >> testProductionAndTestLoadGroupsAreSeparate [
  self assert: (version packageNamed: 'BVC-Users-Runtime') requires asArray equals: #('BVC-Users-Core' 'CatalystRuntime').
  coreClasses := (((MCPackage named: 'BVC-Users-Core') snapshot definitions select: [:definition | definition isClassDefinition]) collect: [:definition | definition className asString]) asArray sorted.
  runtimeClasses := (((MCPackage named: 'BVC-Users-Runtime') snapshot definitions select: [:definition | definition isClassDefinition]) collect: [:definition | definition className asString]) asArray sorted.
- self assert: coreClasses equals: #('CUUser' 'CUUserCreationError' 'CUUsers').
- self assert: runtimeClasses equals: #('CUCreateUserWorkUnit' 'CUUsersCapability' 'CUUsersService' 'CUUsersWorkUnit').
+ self assert: coreClasses equals: #('CUAmbiguousUserError' 'CUUser' 'CUUserCreationError' 'CUUsers').
+ self assert: runtimeClasses equals: #('CUCreateUserWorkUnit' 'CUGetUserWorkUnit' 'CUUsersCapability' 'CUUsersService' 'CUUsersWorkUnit').
  ^ version
 ]
 

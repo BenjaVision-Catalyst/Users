@@ -1,5 +1,5 @@
 "
-Narrow Users createUser: capability for installed CUUsersWorkUnit subclasses. It is bound to one service activation epoch and expires across stop/restart. It carries no service-control or authentication authority.
+Narrow Users creation and exact-name lookup capability for installed CUUsersWorkUnit subclasses. Bound to one service activation epoch; expires across stop/restart. Carries no service-control or authentication authority.
 "
 Class {
 	#name : 'CUUsersCapability',
@@ -31,4 +31,10 @@ CUUsersCapability >> bindService: aService [
 CUUsersCapability >> createUser: aUser [
  (service isCurrentResultEpoch: epoch) ifFalse: [CRCapabilityDeniedException signal: 'Users capability has expired.'].
  ^ service createUser: aUser
+]
+
+{ #category : 'users api' }
+CUUsersCapability >> getUser: exactName [
+ (service isCurrentResultEpoch: epoch) ifFalse: [CRCapabilityDeniedException signal: 'Users capability has expired.'].
+ ^ service getUser: exactName
 ]

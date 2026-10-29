@@ -22,6 +22,22 @@ CUUsersObjectApplication >> bindingFor: configuration [
 ]
 
 { #category : 'configuration' }
+CUUsersObjectApplication >> bindingsFor: configuration [
+ "Keep explicitly configured creation-only applications compatible. Lookup requires operation 2."
+ ^ (configuration allowedOperations includes: 2)
+  ifTrue: [{self bindingFor: configuration. self lookupBindingFor: configuration}]
+  ifFalse: [super bindingsFor: configuration]
+]
+
+{ #category : 'configuration' }
+CUUsersObjectApplication >> lookupBindingFor: configuration [
+ | creation |
+ creation := self bindingFor: configuration.
+ ^ CUGetUserBinding new operation: 2 request: CUUserLookup new result: CUUser new
+  work: CUGetUserMessageWork service: (configuration bindingNamed: #users) serviceIdentifier peer: creation localIdentity
+]
+
+{ #category : 'configuration' }
 CUUsersObjectApplication >> messageWorkClass [
  ^ CUCreateUserMessageWork
 ]
