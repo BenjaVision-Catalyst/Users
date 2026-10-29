@@ -241,5 +241,7 @@
     "gtRebuilt": false,
     "privateGTManagementConnectionAdded": false,
     "connectPerformanceHarnessChanged": false
-  }
+  },
+  "status": "Historical held-receive implementation; superseded by actual QUIC server push",
+  "supersededBy": "quic-server-push-2026-10-29.json"
 }

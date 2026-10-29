@@ -126,10 +126,13 @@ not account/tenant authorization or a production-complete security model.
 
 ## Protocol and compatibility
 
-Operations 3/4/5/6 are live create/read/update/recover; 7/8/9 subscribe/receive/unsubscribe. Their installed request and
-state descriptions use the additive state-v2 profile. Current Quinn transport,
-ALPN, native ABI and 4080-byte bound are unchanged; no CapTP, Cap'n Proto or DDS
-runtime is required. See Connect's `conformance/object-messaging.md` for manifests.
+Operations 3/4/5/6 are live create/read/update/recover; 7/9 watch/unwatch identities,
+and 8 establishes the native notification subscription. Their installed request
+and state descriptions use the additive state-v2 profile. Actual server push uses
+ABI2 and ALPN `catalyst-connect/2`, with reliable server-initiated unidirectional
+notifications alongside the existing RPC stream. The 4080-byte payload bound is
+unchanged; no CapTP, Cap'n Proto or DDS runtime is required. See Connect's
+`conformance/object-messaging.md` for manifests.
 GT is also an authoritative server using its existing in-memory execution strategy.
 Users bindings explicitly opt in to volatile finalization; ordinary transactional
 completions remain denied that option. GemStone retains its commit/evidence checks.
@@ -185,5 +188,7 @@ held-update delivery, conflicts, reconnect resnapshot and resumed push, zero rea
 explicit/readiness reads, and cleanup. GemStone additionally verifies
 rollback suppression and independent-Gem visibility before/after commit.
 
-See [pushed User qualification](../conformance/pushed-users-2026-10-29.json) for
-both authorities, idle-window measurements, commit/rollback checks and source proof.
+See [QUIC server-push qualification](../conformance/quic-server-push-2026-10-29.json)
+for both authorities, idle-window measurements and commit/rollback checks. The
+earlier [held-receive qualification](../conformance/pushed-users-2026-10-29.json)
+records the superseded transport mechanism.

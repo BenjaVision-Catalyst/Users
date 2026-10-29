@@ -1,0 +1,252 @@
+{
+  "date": "2026-10-29",
+  "passed": true,
+  "scope": "Fresh native QUIC server-push qualification after Runtime fixture recovery; two authorities and three clients each",
+  "transport": {
+    "nativeABI": 2,
+    "alpn": "catalyst-connect/2",
+    "rpc": "Existing client-initiated bidirectional stream",
+    "notifications": "Server-initiated reliable unidirectional stream",
+    "subscription": "One-time native subscription setup; no held receives, renewals or per-event acknowledgement RPCs",
+    "magritte": "Existing installed state-v2 request/state descriptions; Swift and C++ Magritte ports"
+  },
+  "checks": {
+    "authorityClientCombinations": 6,
+    "idleWindowSecondsPerClient": 16,
+    "noIdleApplicationRequests": true,
+    "noIdleUserReadsOrReceiveRenewals": true,
+    "updatesHeldUntilFinalization": true,
+    "gemstoneIndependentCommitVisibility": true,
+    "gemstoneRollbackSuppressed": true,
+    "stableIdentityAndConflictDraftPreserved": true,
+    "reconnectResnapshotAndResumedPush": true,
+    "freshFixtureRuntimesStoppedAndRemoved": true,
+    "preexistingDevelopmentRuntimeProcessesPreserved": true,
+    "bothMcpGatesReleasedAndRestored": true,
+    "originalFailedFixtureStoppedAndUnchanged": true,
+    "originalWorkReplayed": false,
+    "gtRebuilt": false
+  },
+  "gt": {
+    "runtime": "platform_users_c65f936ee8cd",
+    "clients": {
+      "swift-macos": {
+        "passed": true,
+        "pushedAfterFinalization": true,
+        "zeroIdleApplicationRequests": true,
+        "nativeSubscriptionReady": true,
+        "stableIdentity": true,
+        "reconnect": true,
+        "conflictPreservesDraft": true,
+        "rollbackSuppressed": false
+      },
+      "swift-ios": {
+        "passed": true,
+        "pushedAfterFinalization": true,
+        "zeroIdleApplicationRequests": true,
+        "nativeSubscriptionReady": true,
+        "stableIdentity": true,
+        "reconnect": true,
+        "conflictPreservesDraft": true,
+        "rollbackSuppressed": false
+      },
+      "unreal": {
+        "passed": true,
+        "pushedAfterFinalization": true,
+        "zeroIdleApplicationRequests": true,
+        "nativeSubscriptionReady": true,
+        "stableIdentity": true,
+        "reconnect": true,
+        "conflictPreservesDraft": true,
+        "rollbackSuppressed": false
+      }
+    },
+    "authorityEvidence": {
+      "zeroIdleReads": true,
+      "readSamples": 18,
+      "zeroIdleReceiveRequests": true,
+      "createdUsers": [
+        "platform_users_c65f936ee8cd_user_swift-macos:push-reconnected",
+        "platform_users_c65f936ee8cd_user_swift-ios:push-reconnected",
+        "platform_users_c65f936ee8cd_user_unreal:push-reconnected"
+      ],
+      "idleChecks": 3,
+      "buffersReleased": true,
+      "runtimeStopped": true,
+      "runtimeUnregistered": true,
+      "inMemoryFinalizations": 12,
+      "volatileAuthority": true,
+      "createdFromConfiguration": true,
+      "library": "/opt/git/BenjaVisionPro/catalyst-workspace/recovery/quic-push-20261029/ordered-native/aarch64-apple-darwin/release/libcatalyst_connect.dylib"
+    },
+    "mcpGate": {
+      "servers": 1,
+      "originalRegistriesRestored": true,
+      "preexistingCalls": 1,
+      "state": "released",
+      "quiescenceElapsedMillis": 354,
+      "refusedCalls": 0
+    },
+    "report": "recovery/quic-push-reverify-20261029/gt/qualification.json"
+  },
+  "gemstone": {
+    "runtime": "platform_users_35014e7d8b85",
+    "clients": {
+      "swift-macos": {
+        "passed": true,
+        "pushedAfterFinalization": true,
+        "zeroIdleApplicationRequests": true,
+        "nativeSubscriptionReady": true,
+        "stableIdentity": true,
+        "reconnect": true,
+        "conflictPreservesDraft": true,
+        "rollbackSuppressed": true
+      },
+      "swift-ios": {
+        "passed": true,
+        "pushedAfterFinalization": true,
+        "zeroIdleApplicationRequests": true,
+        "nativeSubscriptionReady": true,
+        "stableIdentity": true,
+        "reconnect": true,
+        "conflictPreservesDraft": true,
+        "rollbackSuppressed": true
+      },
+      "unreal": {
+        "passed": true,
+        "pushedAfterFinalization": true,
+        "zeroIdleApplicationRequests": true,
+        "nativeSubscriptionReady": true,
+        "stableIdentity": true,
+        "reconnect": true,
+        "conflictPreservesDraft": true,
+        "rollbackSuppressed": true
+      }
+    },
+    "idleWindows": [
+      {
+        "zeroIdleReceiveRequests": true,
+        "phase": "quietAfter",
+        "runtime": "platform_users_35014e7d8b85",
+        "toSequence": 2500,
+        "fromSequence": 736,
+        "zeroIdleReads": true
+      },
+      {
+        "zeroIdleReceiveRequests": true,
+        "phase": "quietAfter",
+        "runtime": "platform_users_35014e7d8b85",
+        "toSequence": 6949,
+        "fromSequence": 5384,
+        "zeroIdleReads": true
+      },
+      {
+        "zeroIdleReceiveRequests": true,
+        "phase": "quietAfter",
+        "runtime": "platform_users_35014e7d8b85",
+        "toSequence": 10043,
+        "fromSequence": 8779,
+        "zeroIdleReads": true
+      }
+    ],
+    "heldEditsInvisibleBeforeCommit": [
+      {
+        "phase": "pushBeforeCommit",
+        "runtime": "platform_users_35014e7d8b85",
+        "heldUpdateVisible": false
+      },
+      {
+        "phase": "pushBeforeCommit",
+        "runtime": "platform_users_35014e7d8b85",
+        "heldUpdateVisible": false
+      },
+      {
+        "phase": "pushBeforeCommit",
+        "runtime": "platform_users_35014e7d8b85",
+        "heldUpdateVisible": false
+      }
+    ],
+    "committedEditsVisibleAfterCommit": [
+      {
+        "committedUpdateVisible": true,
+        "phase": "pushAfterCommit",
+        "runtime": "platform_users_35014e7d8b85"
+      },
+      {
+        "committedUpdateVisible": true,
+        "phase": "pushAfterCommit",
+        "runtime": "platform_users_35014e7d8b85"
+      },
+      {
+        "committedUpdateVisible": true,
+        "phase": "pushAfterCommit",
+        "runtime": "platform_users_35014e7d8b85"
+      }
+    ],
+    "publicationEvidence": {
+      "readAndProbeSamples": 11,
+      "committedPublications": 10,
+      "expectedUsersPersisted": true,
+      "phase": "verifyPush",
+      "runtime": "platform_users_35014e7d8b85",
+      "subscriptionSetupAndProbeSamples": 10,
+      "noPeriodicReads": true
+    },
+    "cleanup": {
+      "removedUsers": 3,
+      "originalUsersPreserved": true,
+      "phase": "cleanup",
+      "runtime": "platform_users_35014e7d8b85",
+      "gateRestored": true
+    },
+    "mcpGate": {
+      "servers": 1,
+      "originalRegistriesRestored": true,
+      "preexistingCalls": 1,
+      "state": "released",
+      "quiescenceElapsedMillis": 329,
+      "refusedCalls": 0
+    },
+    "report": "recovery/quic-push-reverify-20261029/gemstone/qualification.json"
+  },
+  "artifacts": {
+    "nativeBuildManifest": {
+      "abi": 2,
+      "alpn": "catalyst-connect/2",
+      "target": "aarch64-apple-darwin",
+      "archive_sha256": "a16309bc89afa45d6a48235d73267f85ddf6a6730381de48301860c70fd0fa0f",
+      "source_sha256": "c2fb25aade591d6771e9924884ffe90981e358f5f93811628793bd88c5d4f052",
+      "header_sha256": "86568c880e81fa46a16ae6fcb1b46a0144e0dc7d7a35662191b626a35800db80",
+      "cargo_lock_sha256": "9eec8378686ea66b5cd79a462f7da4d6fcb48b48bee60b107f751dfaf5dafab6",
+      "rustc": "rustc 1.96.1 (31fca3adb 2026-06-26)"
+    },
+    "currentNativeSourcesMatchBuild": true,
+    "nativeDylibSHA256": "63674c67f8c2b482669aa19ca2bdc494ec4879d2ca72b89a8a72aaaecb05da91",
+    "stagedClientSourcesMatchCommittedCheckout": {
+      "Users/CatalystUsersSwift/Sources": 5,
+      "Users/CatalystUsersSwift/Tests": 3,
+      "Connect/CatalystConnectSwift/Sources": 6,
+      "Connect/CatalystConnectPlugin/Source": 30,
+      "Users/CatalystUsersPlugin/Source": 18
+    }
+  },
+  "sourceRevisions": {
+    "Runtime/CatalystRuntime": "be74c0cf792324b44a951626051f6a15e345ddf6",
+    "Connect/CatalystConnect": "1d2b8cf1839cdc8a2615c685b8fc31aef5190eb2",
+    "Connect/CatalystConnectSwift": "7c233b5e8d3967cf3dc726a2433dcc4b567d47dd",
+    "Connect/CatalystConnectPlugin": "70a59b6117aa0be34927a6af1b3f4e385b663ecc",
+    "Users/CatalystUsers": "23e805b288f4451d7c0ee2727377d0ece2f44902",
+    "Users/CatalystUsersSwift": "64de7bd5e7b53c5b0ab69ab6cc5f09051469b24a",
+    "Users/CatalystUsersPlugin": "d6ec39c93d033f3c5ea56968a3c180fa0c0fcf79"
+  },
+  "reportSHA256": {
+    "gt": "1361b6f9a48eab0d5f596d8616533113bfa79248bd0b937f6412bfdb98ec3361",
+    "gemstone": "cb7cb97a52a8299972d4c32cf02b18cdeb1e528ef991f7e66bfe4af71bebed8a"
+  },
+  "fixtureRecovery": "https://github.com/BenjaVisionPro/catalyst-workspace/blob/main/Runtime/evidence/fixture-cleanup-2026-10-29.json",
+  "limits": [
+    "GT finalizes in memory; it does not claim GemStone persistence or rollback.",
+    "iOS execution used the simulator; no physical device execution in this run.",
+    "This is the live User slice, not a fabric scale or full release-catalog qualification."
+  ]
+}
