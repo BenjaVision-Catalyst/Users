@@ -45,6 +45,7 @@ def main():
     parser.add_argument('--deployment', required=True)
     parser.add_argument('--authority', choices=['gemstone', 'gt'], default='gemstone')
     parser.add_argument('--push-only', action='store_true')
+    parser.add_argument('--readiness', action='store_true', help='Use native readiness hints with a finite 1000 ms fallback')
     parser.add_argument('--mcp-url', default='http://127.0.0.1:3001/')
     parser.add_argument('--platforms', nargs='+', choices=['swift-macos', 'swift-ios', 'unreal'], default=['swift-macos', 'swift-ios', 'unreal'])
     args = parser.parse_args()
@@ -56,7 +57,8 @@ def main():
     output.mkdir(parents=True, exist_ok=False)
     name = 'platform_users_' + uuid.uuid4().hex[:12]
     env = dict(os.environ, GEMSTONE_STONE_NAME=args.deployment, BVC_USERS_PLATFORM_DIRECTORY=str(output))
-    parameters = dict(runtime=name, prefix=name + '_user', library=str(args.library), clients=[])
+    parameters = dict(runtime=name, prefix=name + '_user', library=str(args.library), clients=[], readinessEnabled=args.readiness)
+    if args.readiness: parameters['cadenceConfiguration'] = dict(idleMillis=1000, reconcileIntervalMillis=1000, heartbeatIntervalMillis=1000)
     report = dict(runtime=name, phases={}, clients={})
     configured, lease = False, False
     owner = 'CUPlatformLease' + uuid.uuid4().hex
@@ -120,22 +122,6 @@ def main():
         write(directory / 'client.json', dict(options, prefix=prefix, reconnectedName=reconnected, authority=args.authority))
         parameters['clients'].append(dict(name=platform, output=str(directory), prefix=prefix, reconnectedName=reconnected, library=str(args.library), serverOptions=str(directory / 'server.json')))
     try:
-        if args.authority == 'gemstone':
-            phase('configure'); configured = True
-            report['configured'] = runtime('configure', output / 'runtime.ston')
-            runtime('start')
-            deadline = time.monotonic() + 45
-            expected = {'users', *('connect_' + p for p in args.platforms)}
-            while True:
-                status = runtime('status')
-                running = {s['identifier'] for w in status['workers'] for s in w['services']
-                           if s['state'] == 'running' and s['appliedConfigurationVersion'] == status['configurationVersion']}
-                if status['state'] == 'running' and expected <= running:
-                    break
-                if time.monotonic() > deadline:
-                    raise TimeoutError('Runtime did not converge')
-                time.sleep(.2)
-            report['started'] = status; save()
         # Keep the GT MCP admission lease through external native validation and Runtime cleanup.
         # The Python controller is the sole Runtime owner; the GT task only owns this isolation gate.
         if args.authority == 'gt':
@@ -162,6 +148,22 @@ Smalltalk globals at: {quote(owner)} asSymbol put: run. run snapshot''')
      ensure: [CRPlatform current writeConnectEvidence: lease snapshot to: {quote(output / 'gt-mcp-gate.json')}]].
     Smalltalk globals at: {quote(owner)} asSymbol put: run. run snapshot''')
         lease = True; wait_json(output / 'lease-active.json')
+        if args.authority == 'gemstone':
+            phase('configure'); configured = True
+            report['configured'] = runtime('configure', output / 'runtime.ston')
+            runtime('start')
+            deadline = time.monotonic() + 45
+            expected = {'users', *('connect_' + p for p in args.platforms)}
+            while True:
+                status = runtime('status')
+                running = {s['identifier'] for w in status['workers'] for s in w['services']
+                           if s['state'] == 'running' and s['appliedConfigurationVersion'] == status['configurationVersion']}
+                if status['state'] == 'running' and expected <= running:
+                    break
+                if time.monotonic() > deadline:
+                    raise TimeoutError('Runtime did not converge')
+                time.sleep(.2)
+            report['started'] = status; save()
         if args.authority == 'gt':
             deadline = time.monotonic() + 45
             while not (output / 'server-ready.json').exists():

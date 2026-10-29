@@ -22,6 +22,7 @@ CUUsersFeedResponse >> attach: source schema: codec [
 { #category : 'push updates' }
 CUUsersFeedResponse >> attach: source schema: codec cache: cache [
  feed := source. schema := codec. publicationCache := cache. ticket := feed beginPush.
+ feed readinessSignal: readinessSignal.
  self complete: (schema encode: (CULiveUserState outcome: 'subscribed')) status: 0
 ]
 
@@ -61,6 +62,12 @@ CUUsersFeedResponse >> nextPublication [
 { #category : 'push updates' }
 CUUsersFeedResponse >> published: publication [
  feed ifNotNil: [feed acknowledge: publication identifier revision: publication revision]
+]
+
+{ #category : 'push updates' }
+CUUsersFeedResponse >> readinessSignal: hint [
+ super readinessSignal: hint.
+ feed ifNotNil: [feed readinessSignal: hint]
 ]
 
 { #category : 'push updates' }

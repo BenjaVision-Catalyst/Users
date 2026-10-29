@@ -21,7 +21,7 @@ phase = 'configure' ifTrue: [
   file := GsFile openReadOnServer: (spec at: 'serverOptions').
   [connect := CCQuicConfiguration new nativeProtocolVersion: 2; identifier: identifier; label: ((parameters at: 'fanout' ifAbsent: [false]) ifTrue: [directory] ifFalse: ['Platform Users endpoint']);
    nativeOptionsJson: file contents; libraryPath: (parameters at: 'library'); principal: (spec at: 'name');
-   idleMillis: (cadence at: 'idleMillis' ifAbsent: [20]); allowedOperations: #(1 2 3 4 5 6 7 8 9 65534); applicationClass: ((parameters at: 'fanout' ifAbsent: [false]) ifTrue: [CUUsersFanoutApplicationFixture] ifFalse: [CUUsersCommitGateApplicationFixture]); yourself] ensure: [file close].
+   readinessEnabled: (parameters at: 'readinessEnabled' ifAbsent: [false]); idleMillis: (cadence at: 'idleMillis' ifAbsent: [20]); allowedOperations: #(1 2 3 4 5 6 7 8 9 65534); applicationClass: ((parameters at: 'fanout' ifAbsent: [false]) ifTrue: [CUUsersFanoutApplicationFixture] ifFalse: [CUUsersCommitGateApplicationFixture]); yourself] ensure: [file close].
   target := CRServiceBindingConfiguration new identifier: #users; label: 'Users'; serviceIdentifier: #users; yourself.
   connect bindings: {target}. services add: connect].
  configuration := CRRuntimeConfiguration new label: 'Native platform Users qualification'; services: services asArray; yourself.
@@ -111,6 +111,7 @@ phase = 'fanoutVerify' ifTrue: [
  services := runtime configuration services.
  orchestrator := services detect: [:service | service identifier = CRRuntime orchestratorIdentifier].
  selected := services detect: [:service | service isKindOf: CCQuicConfiguration].
+ report at: 'readinessEnabled' put: selected readinessEnabled.
  report at: 'cadenceConfiguration' put: (Dictionary new at: 'idleMillis' put: selected idleMillis;
   at: 'reconcileIntervalMillis' put: orchestrator reconcileIntervalMillis;
   at: 'heartbeatIntervalMillis' put: orchestrator heartbeatIntervalMillis; yourself).

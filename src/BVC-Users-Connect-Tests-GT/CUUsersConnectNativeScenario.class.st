@@ -59,16 +59,17 @@ CUUsersConnectNativeScenario >> runConfiguration: connectConfiguration cases: ca
 
 { #category : 'push updates' }
 CUUsersConnectNativeScenario >> runServerConfigurations: specifications directory: directory [
- | configuration orchestrator host services deployments worker usersService connects original prefix results originalGate deadline idleStarts idleChecks parameters fanout |
+ | configuration orchestrator host services deployments worker usersService connects original prefix results originalGate deadline idleStarts idleChecks parameters fanout cadence |
  parameters := STONJSON fromString: (directory / 'parameters.json') contents.
+ cadence := parameters at: 'cadenceConfiguration' ifAbsent: [Dictionary new].
  fanout := parameters at: 'fanout' ifAbsent: [false]. prefix := parameters at: 'prefix'.
  original := CUUsers allUsers copy. originalGate := CUUsersCommitGateMessageFixture gateDirectory. connects := OrderedCollection new.
- orchestrator := CROrchestrationConfiguration default heartbeatIntervalMillis: 500; reconcileIntervalMillis: 100; yourself.
+ orchestrator := CROrchestrationConfiguration default heartbeatIntervalMillis: (cadence at: 'heartbeatIntervalMillis' ifAbsent: [500]); reconcileIntervalMillis: (cadence at: 'reconcileIntervalMillis' ifAbsent: [100]); yourself.
  services := OrderedCollection with: orchestrator with: (CUUsersConfiguration new identifier: #users; label: 'Volatile authoritative Users'; authoritative: true; maximumFeeds: (parameters at: 'maximumFeeds' ifAbsent: [16]); maximumUsersPerFeed: (parameters at: 'maximumUsersPerFeed' ifAbsent: [256]); yourself).
  specifications do: [:spec | | cfg |
   cfg := CCQuicConfiguration new nativeProtocolVersion: 2; identifier: ('connect_', (spec at: 'name')) asSymbol; label: (fanout ifTrue: [directory fullName] ifFalse: ['Users native server']);
-   nativeOptionsJson: (spec at: 'serverOptions') asFileReference contents; libraryPath: (CCPharoQuicPushNative loadedPath ifNil: [spec at: 'library']);
-   principal: (spec at: 'name'); idleMillis: 20; allowedOperations: #(1 2 3 4 5 6 7 8 9 65534); applicationClass: (fanout ifTrue: [CUUsersFanoutApplicationFixture] ifFalse: [CUUsersCommitGateApplicationFixture]);
+   nativeOptionsJson: (spec at: 'serverOptions') asFileReference contents; libraryPath: (spec at: 'library');
+   principal: (spec at: 'name'); readinessEnabled: (parameters at: 'readinessEnabled' ifAbsent: [false]); idleMillis: (cadence at: 'idleMillis' ifAbsent: [20]); allowedOperations: #(1 2 3 4 5 6 7 8 9 65534); applicationClass: (fanout ifTrue: [CUUsersFanoutApplicationFixture] ifFalse: [CUUsersCommitGateApplicationFixture]);
    bindings: {CRServiceBindingConfiguration new identifier: #users; serviceIdentifier: #users; yourself}; yourself.
   services add: cfg].
  configuration := CRRuntimeConfiguration new label: 'GT Users authority qualification'; services: services asArray; yourself.
@@ -77,7 +78,7 @@ CUUsersConnectNativeScenario >> runServerConfigurations: specifications director
  deployments := services collect: [:service | CRServiceDeploymentConfiguration new serviceIdentifier: service identifier; label: service label; initialCount: 1; yourself].
  configuration deployment serviceDeployments: deployments asArray. configuration failureEvidenceConfiguration captureDebugArtifacts: false.
  self assert: configuration validate isValid. runtime := CRRuntime new.
- idleStarts := Dictionary new. idleChecks := Set new. results := Dictionary new at: 'createdFromConfiguration' put: true; at: 'volatileAuthority' put: true; at: 'library' put: (CCPharoQuicPushNative loadedPath ifNil: [(specifications first at: 'library')]); yourself.
+ idleStarts := Dictionary new. idleChecks := Set new. results := Dictionary new at: 'createdFromConfiguration' put: true; at: 'volatileAuthority' put: true; at: 'library' put: (specifications first at: 'library'); yourself.
  [runtime configure: configuration. runtime start.
  (Delay forMilliseconds: 1000) wait.
  CRPlatform current writeConnectEvidence: (Dictionary new at: 'workers' put: ((CRPharoWorker allInstances select: [:each | each runtime == runtime]) collect: [:each |

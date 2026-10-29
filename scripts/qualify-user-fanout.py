@@ -80,6 +80,7 @@ def main():
     parser.add_argument('--clients', nargs='+', type=int, choices=[1, 8, 32, 60], default=[1, 8, 32, 60])
     parser.add_argument('--build-configuration', choices=['debug', 'release'], default='debug')
     parser.add_argument('--write-interval-millis', type=float, default=0, help='Paced serial admission; record lag if replies prevent meeting the offered schedule')
+    parser.add_argument('--readiness', action='store_true', help='Use native readiness with the configured finite idle fallback')
     parser.add_argument('--observe-workunits', action='store_true', help='GemStone only: copy existing durable execution records in a read-only Gem; preserve retention and transaction boundaries')
     parser.add_argument('--connect-idle-millis', type=int, help='GemStone qualification: existing Connect idle configuration (default 20, valid 1..1000)')
     parser.add_argument('--reconcile-interval-millis', type=int, help='GemStone qualification: existing orchestration configuration (default 100)')
@@ -101,7 +102,8 @@ def main():
     name = 'fanout_users_' + uuid.uuid4().hex[:12]
     env = dict(os.environ, GEMSTONE_STONE_NAME=args.deployment, BVC_USERS_PLATFORM_DIRECTORY=str(output))
     parameters = dict(runtime=name, prefix=name, library=str(args.library), fanout=True, maximumFeeds=64, maximumUsersPerFeed=3, clients=[])
-    if args.authority == 'gemstone': parameters['cadenceConfiguration'] = cadence
+    parameters['cadenceConfiguration'] = cadence
+    parameters['readinessEnabled'] = args.readiness
     report = dict(runtime=name, authority=args.authority, profiles=[], nativeCapacity=64, maximumFeeds=64, maximumUsersPerFeed=3, clientBuildConfiguration=args.build_configuration, offeredWriteIntervalMillis=args.write_interval_millis)
     snapshot = output / 'source-snapshot'; snapshot.mkdir()
     sources = dict(controller=Path(__file__), runtimeConfiguration=Path(__file__).with_name('qualify-platform-users.topaz'),
@@ -286,6 +288,7 @@ Smalltalk globals at: {quote(owner)} asSymbol put: run. run snapshot''')
         if args.authority == 'gemstone':
             parameters['expectedUsers'] = [state for profile in output.glob(name + '_*') for state in wait_json(profile / 'final.json')]
             report['persistence'] = phase('fanoutVerify')
+            if report['persistence']['readinessEnabled'] != args.readiness: raise RuntimeError('Accepted readiness mode differs from request')
             if report['persistence']['cadenceConfiguration'] != cadence: raise RuntimeError('Accepted Runtime cadence differs from requested configuration')
         report['workloadPassed'] = True
     except Exception as error:

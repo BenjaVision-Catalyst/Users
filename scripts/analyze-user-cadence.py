@@ -26,7 +26,10 @@ def main():
         directory = base/spec['name']
         qualification = json.loads((directory/'workload/qualification.json').read_text())
         native = json.loads((directory/'native/manifest.json').read_text())
-        cadence = {key:value for key,value in spec.items() if key != 'name'}
+        cadence = {key:spec[key] for key in ('idleMillis','reconcileIntervalMillis','heartbeatIntervalMillis')}
+        parameters = json.loads((directory/'workload/parameters.json').read_text())
+        if parameters.get('readinessEnabled', False) != spec.get('readinessEnabled', False) or qualification['persistence'].get('readinessEnabled',False) != spec.get('readinessEnabled',False):
+            raise ValueError('Requested readiness mode mismatch')
         if not (qualification['passed'] and native['passed'] and qualification['persistence']['cadenceConfiguration'] == cadence):
             raise ValueError('Unqualified case or accepted configuration mismatch')
         source_revisions.add(json.dumps(qualification['sourceSHA256'], sort_keys=True))
@@ -72,7 +75,7 @@ def main():
             raise ValueError('Observation Gem committed')
         combined = application['primaryNativeCommitDelta'] + control['primaryNativeCommitDelta']
         retained_profile = {key:value for key,value in profile.items() if key not in ['serverMemorySamples','clientMemorySamples','perHealthyClient']}
-        case = dict(name=spec['name'], cadence=cadence, profile=retained_profile,
+        case = dict(name=spec['name'], readinessEnabled=spec.get('readinessEnabled',False), cadence=cadence, profile=retained_profile,
             applicationCompletions=application['count'], controlCompletions=control['count'], classCounts=dict(units),
             applicationNonDriveClassCounts=dict(Counter(row['workUnitClass'] for row in observation['records']
                 if row['host'] == 'application' and row['workUnitClass'] != 'CCQuicDriveWork')),

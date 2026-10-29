@@ -12,7 +12,8 @@ Class {
 		'active',
 		'lastUsed',
 		'maximumUsers',
-		'mutex'
+		'mutex',
+		'readinessSignal'
 	],
 	#category : 'BVC-Users-Runtime',
 	#package : 'BVC-Users-Runtime'
@@ -37,7 +38,9 @@ CUUsersChangeFeed >> beginPush [
 
 { #category : 'push updates' }
 CUUsersChangeFeed >> close [
- ^ mutex critical: [active := false. ticket := nil. pending := Dictionary new. order := OrderedCollection new. identities := Dictionary new]
+ | hint |
+ mutex critical: [active := false. ticket := nil. pending := Dictionary new. order := OrderedCollection new. identities := Dictionary new. hint := readinessSignal. readinessSignal := nil].
+ hint ifNotNil: [hint signal]
 ]
 
 { #category : 'push updates' }
@@ -83,14 +86,20 @@ CUUsersChangeFeed >> peekFor: stamp [
 
 { #category : 'push updates' }
 CUUsersChangeFeed >> publish: state [
- ^ mutex critical: [
- | identifier |
- identifier := state userIdentifier.
+ | identifier hint |
+ mutex critical: [identifier := state userIdentifier.
  (self watches: identifier) ifFalse: [^ self].
  state revision <= (identities at: identifier) ifTrue: [^ self].
  (pending includesKey: identifier) ifFalse: [order add: identifier].
- pending at: identifier put: state
- ]
+ pending at: identifier put: state. hint := readinessSignal].
+ hint ifNotNil: [hint signal]
+]
+
+{ #category : 'push updates' }
+CUUsersChangeFeed >> readinessSignal: hint [
+ | ready |
+ ready := mutex critical: [readinessSignal := hint. active and: [pending notEmpty]].
+ (ready and: [hint notNil]) ifTrue: [hint signal]
 ]
 
 { #category : 'push updates' }
