@@ -20,6 +20,7 @@ stopped := false.
  batch := OrderedCollection new. seen := Dictionary new.
  runtime ifNotNil: [runtime nativeHosts valuesDo: [:host | | key metrics previous incoming head stamp |
   key := host workerIdentifier asString. metrics := host executionMetrics.
+  metrics class == CRWorkUnitExecutionMetrics ifFalse: [self error: 'Diagnostic metrics escaped into the durable host journal'].
   previous := last at: key ifAbsent: [0]. incoming := metrics samplesAfterSequence: previous.
   stamp := host generation.
   (previous > 0 and: [(generations at: key) ~= stamp]) ifTrue: [self error: 'Observed worker generation changed'].

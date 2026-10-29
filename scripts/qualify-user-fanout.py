@@ -83,6 +83,8 @@ def main():
     parser.add_argument('--write-interval-millis', type=float, default=0, help='Paced serial admission; record lag if replies prevent meeting the offered schedule')
     parser.add_argument('--readiness', action='store_true', help='Use native readiness with the configured finite idle fallback')
     parser.add_argument('--observe-workunits', action='store_true', help='GemStone only: copy existing durable execution records in a read-only Gem; preserve retention and transaction boundaries')
+    parser.add_argument('--observe-drive-triggers', action='store_true', help='GemStone only: opt-in bounded worker-local drive diagnostics, exported after workload')
+    parser.add_argument('--slow-clients', type=int, choices=[0, 1, 2], help='Override the qualification slow-consumer count')
     parser.add_argument('--connect-idle-millis', type=int, help='GemStone qualification: existing Connect idle configuration (default 20, valid 1..1000)')
     parser.add_argument('--reconcile-interval-millis', type=int, help='GemStone qualification: existing orchestration configuration (default 100)')
     parser.add_argument('--heartbeat-interval-millis', type=int, help='GemStone qualification: existing orchestration configuration (default 500)')
@@ -93,6 +95,8 @@ def main():
     if any(count < 1 or count > 60 for count in args.clients): parser.error('client counts must be 1..60 (writer reserves one listener connection)')
     if not 0 <= args.write_interval_millis <= 1000: parser.error('write interval must be 0..1000 ms')
     if args.observe_workunits and args.authority != 'gemstone': parser.error('durable WorkUnit observation requires GemStone')
+    if args.observe_drive_triggers and (args.authority != 'gemstone' or not args.observe_workunits): parser.error('drive diagnostics require GemStone and --observe-workunits')
+    if args.slow_clients is not None and args.slow_clients > min(args.clients): parser.error('slow clients exceed the smallest client profile')
     requested = [args.connect_idle_millis, args.reconcile_interval_millis, args.heartbeat_interval_millis]
     if any(value is not None for value in requested) and args.authority != 'gemstone': parser.error('cadence overrides require GemStone')
     cadence = dict(idleMillis=20 if args.connect_idle_millis is None else args.connect_idle_millis,
@@ -105,6 +109,7 @@ def main():
     parameters = dict(runtime=name, prefix=name, library=str(args.library), fanout=True, maximumFeeds=64, maximumUsersPerFeed=3, clients=[])
     parameters['cadenceConfiguration'] = cadence
     parameters['readinessEnabled'] = args.readiness
+    parameters['driveTriggers'] = args.observe_drive_triggers
     report = dict(runtime=name, authority=args.authority, profiles=[], nativeCapacity=64, maximumFeeds=64, maximumUsersPerFeed=3, clientBuildConfiguration=args.build_configuration, offeredWriteIntervalMillis=args.write_interval_millis)
     snapshot = output / 'source-snapshot'; snapshot.mkdir()
     sources = dict(controller=Path(__file__), runtimeConfiguration=Path(__file__).with_name('qualify-platform-users.topaz'),
@@ -112,10 +117,13 @@ def main():
         swiftTransport=args.apple_package / 'Sources/CatalystConnect/CatalystConnect.swift')
     sources['sampler'] = Path(__file__).resolve().parents[1] / 'src/BVC-Users-Connect-Tests/CUUsersFanoutApplicationFixture.class.st'
     sources['bufferedDiagnostics'] = Path(__file__).with_name('buffered_user_diagnostics.py')
+    if args.observe_drive_triggers:
+        for diagnostic_class in ['CUUsersDriveTriggerMetrics', 'CUUsersDriveTriggerApplicationFixture']:
+            sources[diagnostic_class] = Path(__file__).resolve().parents[1] / 'src/BVC-Users-Connect-Tests' / (diagnostic_class + '.class.st')
     if args.observe_workunits: sources['workunitObserver'] = Path(__file__).with_name('observe-user-workunits.topaz')
     report['sourceSHA256'] = {key: hashlib.sha256(path.read_bytes()).hexdigest() for key,path in sources.items()}
     for key,path in sources.items():
-        if key == 'sampler': write(snapshot / 'sampler.json', dict(source=path.read_text(),sha256=report['sourceSHA256'][key]))
+        if key == 'sampler' or path.suffix == '.st': write(snapshot / (key + '.json'), dict(source=path.read_text(),sha256=report['sourceSHA256'][key]))
         else: shutil.copy2(path, snapshot / (key + path.suffix))
     owner = 'CUFanoutLease'  + uuid.uuid4().hex
     registered = lease = False
@@ -229,7 +237,7 @@ Smalltalk globals at: {quote(owner)} asSymbol put: run. run snapshot''')
         save()
         for count in args.clients:
             directory = output / (name + '_' + str(count)); directory.mkdir(); current_directory = directory
-            slow = 0 if count == 1 else (1 if count == 8 else 2)
+            slow = args.slow_clients if args.slow_clients is not None else (0 if count == 1 else (1 if count == 8 else 2))
             shards = math.ceil(count / 10); processes = []
             started = time.monotonic(); memory_start = len(memory)
             native_start_millis = time.time_ns()/1e6
