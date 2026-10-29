@@ -59,12 +59,12 @@ CUUsersDriveTriggerExamples >> testQueuedExecutionIsDistinguishedFromReadyIo [
  service := self serviceFixture.
  activation := CRServiceActivation owner: nil unit: Object new epoch: Object new charge: 1.
  response := CCQuicDeferredResponse new.
- (service instVarNamed: 'pending') at: 1 put: (CCQuicClaim new stage: #executing; activation: activation; yourself);
+ (service instVarNamed: 'pending') at: 1 put: (CCQuicClaim new kind: 1; stage: #executing; activation: activation; yourself);
  at: 2 put: (CCQuicClaim new stage: #waiting; body: response; yourself).
  metrics := CUUsersDriveTriggerMetrics new configureFrom: CRWorkUnitExecutionMetrics new service: service.
  metrics recordExecution: self executionFixture.
  row := (metrics driveReport at: 'rows') first.
- self assert: (row at: 'localContinuationPredicate').
+ self deny: (row at: 'localContinuationPredicate').
  self assert: (row at: 'executingWithUnit') equals: 1.
  self assert: (row at: 'immediateClaims') equals: 0.
  response complete: #[1] status: 0.

@@ -63,7 +63,7 @@ CUUsersDriveTriggerMetrics >> recordDrive: execution sequence: sequence [
  at: 'pending' put: pendingCount; at: 'stages' put: stageCounts;
  at: 'executingWithUnit' put: executing; at: 'waitingReady' put: waitingReady; at: 'immediateClaims' put: immediate;
  at: 'pushContinuation' put: (service instVarNamed: 'pushContinuation');
- at: 'localContinuationPredicate' put: ((service instVarNamed: 'pushContinuation') == true or: [pendingCount - (stageCounts at: 'waiting' ifAbsent: [0]) + waitingReady > 0]);
+ at: 'localContinuationPredicate' put: ((service instVarNamed: 'pushContinuation') == true or: [(service instVarNamed: 'pending') anySatisfy: [:claim | service claimRequiresProgress: claim]]);
  at: 'callBudget' put: (service instVarNamed: 'callBudget'); at: 'byteBudget' put: (service instVarNamed: 'byteBudget');
  at: 'candidateBudget' put: (service instVarNamed: 'candidateBudget'); at: 'driveDeadline' put: (service instVarNamed: 'driveDeadline');
  at: 'captureStartedMillis' put: started; yourself.
