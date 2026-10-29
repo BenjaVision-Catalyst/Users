@@ -7,7 +7,15 @@ Class {
 	#instVars : [
 		'evidenceDirectory',
 		'nextSample',
-		'sampleNumber'
+		'sampleNumber',
+		'samples',
+		'diagnosticOwner',
+		'exportRegistered',
+		'exported',
+		'samplingFailure',
+		'sampleAttempts',
+		'skippedNativeSamples',
+		'startupSkips'
 	],
 	#category : 'BVC-Users-Connect-Tests',
 	#package : 'BVC-Users-Connect-Tests'
@@ -16,7 +24,56 @@ Class {
 { #category : 'qualification' }
 CUUsersFanoutApplicationFixture >> configure: configuration [
  super configure: configuration.
- evidenceDirectory := configuration label. nextSample := 0. sampleNumber := 0
+ evidenceDirectory := configuration label. self initializeDiagnostics
+]
+
+{ #category : 'qualification' }
+CUUsersFanoutApplicationFixture >> copyDiagnostic: value [
+ "Keep copied JSON values only; never retain a live service, feed or worker."
+ (value isNil or: [value == true or: [value == false or: [value isNumber]]]) ifTrue: [^ value].
+ value isString ifTrue: [^ value copy].
+ value isSymbol ifTrue: [^ value].
+ (value isKindOf: Dictionary) ifTrue: [| copy |
+  copy := Dictionary new. value keysAndValuesDo: [:key :each | copy at: (self copyDiagnostic: key) put: (self copyDiagnostic: each)]. ^ copy].
+ value isArray ifTrue: [^ value collect: [:each | self copyDiagnostic: each]].
+ self error: 'Sampler diagnostics must be copied JSON values'
+]
+
+{ #category : 'qualification' }
+CUUsersFanoutApplicationFixture >> exportDiagnostics [
+ | started finished report |
+ Processor activeProcess == diagnosticOwner ifFalse: [self error: 'Sampler export requires its Runtime owner'].
+ exported ifTrue: [^ self]. exported := true.
+ started := CRPlatform current currentMillis.
+ samples do: [:sample | self writeDiagnostic: sample name: 'native-', (sample at: 'sample') asString, '.json'].
+ finished := CRPlatform current currentMillis.
+ report := Dictionary new at: 'completed' put: true; at: 'mode' put: 'buffered';
+  at: 'sampleCount' put: samples size; at: 'maximumSamples' put: self maximumSamples;
+  at: 'sampleAttempts' put: sampleAttempts; at: 'skippedNativeBusy' put: skippedNativeSamples;
+  at: 'startupSkips' put: startupSkips asArray;
+  at: 'failure' put: samplingFailure; at: 'exportStartedMillis' put: started;
+  at: 'exportFinishedMillis' put: finished; at: 'ownerProcessVerified' put: true; yourself.
+ self writeDiagnostic: report name: 'sampler-export.json'
+]
+
+{ #category : 'qualification' }
+CUUsersFanoutApplicationFixture >> initializeDiagnostics [
+ nextSample := 0. sampleNumber := 0. samples := OrderedCollection new.
+ diagnosticOwner := nil. exportRegistered := false. exported := false.
+ samplingFailure := nil. sampleAttempts := 0. skippedNativeSamples := 0.
+ startupSkips := OrderedCollection new
+]
+
+{ #category : 'qualification' }
+CUUsersFanoutApplicationFixture >> maximumSamples [
+ "500 ms samples within the qualification controller's 30-minute lease."
+ ^ 3600
+]
+
+{ #category : 'qualification' }
+CUUsersFanoutApplicationFixture >> noteStartupSkip: reason at: now [
+ startupSkips size >= self maximumSamples ifTrue: [samplingFailure := 'Users startup sample buffer exhausted'. self error: samplingFailure].
+ startupSkips add: {now. reason copy}
 ]
 
 { #category : 'qualification' }
@@ -24,32 +81,38 @@ CUUsersFanoutApplicationFixture >> progressUsing: service [
  | now bridge counters fields values worker users feeds rows metrics sample statistics |
  super progressUsing: service.
  now := CRPlatform current currentMillis.
+ samplingFailure ifNotNil: [^ self].
  now < nextSample ifTrue: [^ self]. nextSample := now + 500.
+ sampleAttempts := sampleAttempts + 1.
+ samples size >= self maximumSamples ifTrue: [samplingFailure := 'Users sampler buffer exhausted'. self error: samplingFailure].
  service assertOwner.
  bridge := service instVarNamed: 'bridge'.
  fields := #(1 7 8 9 11 12 14 16).
  values := fields collect: [:field | bridge info: field].
  service instVarNamed: 'callBudget' put: (service instVarNamed: 'callBudget') - fields size.
- (values anySatisfy: [:value | value = 16rFFFFFFFFFFFFFFFF]) ifTrue: [^ self].
+ (values anySatisfy: [:value | value = 16rFFFFFFFFFFFFFFFF]) ifTrue: [skippedNativeSamples := skippedNativeSamples + 1. ^ self].
  counters := Dictionary new.
  fields with: values do: [:field :value | counters at: field asString put: value].
  worker := (service instVarNamed: 'port') instVarNamed: 'worker'.
+ self registerExportWith: worker announcer.
  users := worker services serviceAtIdentifier: #users.
+ users ifNil: [self noteStartupSkip: 'Users service not installed' at: now. ^ self].
  feeds := users instVarNamed: 'feeds'.
+ feeds ifNil: [self noteStartupSkip: 'Users service not started' at: now. ^ self].
  rows := feeds values collect: [:feed | (feed instVarNamed: 'mutex') critical: [
   Dictionary new at: 'active' put: feed isActive; at: 'publisher' put: feed hasPublisher;
    at: 'watched' put: (feed instVarNamed: 'identities') size; at: 'pending' put: (feed instVarNamed: 'pending') size;
    at: 'pendingRevisions' put: (((feed instVarNamed: 'pending') values collect: #revision) asArray); yourself]].
  metrics := worker workerHandle statistics at: #workUnitExecution.
  statistics := Dictionary new. (service status at: #statistics) keysAndValuesDo: [:key :value | statistics at: key asString put: value].
- sampleNumber := sampleNumber + 1.
- sample := Dictionary new at: 'sample' put: sampleNumber; at: 'millis' put: now; at: 'native' put: counters;
+ sample := Dictionary new at: 'sample' put: sampleNumber + 1; at: 'millis' put: now; at: 'native' put: counters;
   at: 'feeds' put: rows asArray; at: 'publishers' put: (service instVarNamed: 'pushSources') size;
   at: 'executionSequence' put: (metrics samples ifEmpty: [0] ifNotEmpty: [:samples | samples last sequence]);
   at: 'connectStatistics' put: statistics;
   at: 'driveLimits' put: (Dictionary new at: 'calls' put: service configuration driveCallLimit; at: 'bytes' put: service configuration driveByteLimit; at: 'millis' put: service configuration driveTimeLimitMillis; yourself);
   at: 'publicationCaches' put: ((bindings select: #supportsSubscription) collect: #publicationStatistics); yourself.
- CRPlatform current writeConnectEvidence: sample to: evidenceDirectory, '/native-', sampleNumber asString, '.json'
+ sample at: 'snapshotStartedMillis' put: now.
+ self recordDiagnostic: sample
 ]
 
 { #category : 'qualification' }
@@ -75,4 +138,30 @@ report := Dictionary new at: 'revisions' put: revisions; at: 'recipients' put: r
  at: 'originalEncodingsPerTrial' put: revisions * recipients; at: 'sharedEncodingsPerTrial' put: (cache statistics at: #encodings); at: 'byteEquivalent' put: true; yourself.
 (cache statistics at: #encodings) = revisions ifFalse: [self error: 'Expected one encoding per committed revision'].
 ^ report
+]
+
+{ #category : 'qualification' }
+CUUsersFanoutApplicationFixture >> recordDiagnostic: sample [
+ | copy finished |
+ exported ifTrue: [self error: 'Sampler export already began'].
+ samples size >= self maximumSamples ifTrue: [samplingFailure := 'Users sampler buffer exhausted'. self error: samplingFailure].
+ (sample at: 'sample') = (sampleNumber + 1) ifFalse: [self error: 'Sampler sequence must be contiguous'].
+ copy := self copyDiagnostic: sample. finished := CRPlatform current currentMillis.
+ copy at: 'snapshotFinishedMillis' put: finished.
+ samples add: copy. sampleNumber := sampleNumber + 1.
+ copy at: 'hookFinishedMillis' put: CRPlatform current currentMillis
+]
+
+{ #category : 'qualification' }
+CUUsersFanoutApplicationFixture >> registerExportWith: announcer [
+ exportRegistered ifTrue: [^ self].
+ diagnosticOwner := Processor activeProcess.
+ announcer when: CRWorkerServicesUninstallingAnnouncement
+  do: [:announcement | self exportDiagnostics. announcer unsubscribe: self] for: self.
+ exportRegistered := true
+]
+
+{ #category : 'qualification' }
+CUUsersFanoutApplicationFixture >> writeDiagnostic: value name: name [
+ CRPlatform current writeConnectEvidence: value to: evidenceDirectory, '/', name
 ]

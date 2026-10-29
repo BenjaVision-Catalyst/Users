@@ -17,6 +17,7 @@ import subprocess
 import time
 import urllib.request
 import uuid
+from buffered_user_diagnostics import validate_buffered_diagnostics
 
 spec = importlib.util.spec_from_file_location('platform_users', Path(__file__).with_name('qualify-platform-users.py'))
 helpers = importlib.util.module_from_spec(spec)
@@ -109,9 +110,13 @@ def main():
     sources = dict(controller=Path(__file__), runtimeConfiguration=Path(__file__).with_name('qualify-platform-users.topaz'),
         swiftWorker=args.apple_package / 'Tests/CatalystUsersTests/NativeFanoutUsersTests.swift',
         swiftTransport=args.apple_package / 'Sources/CatalystConnect/CatalystConnect.swift')
+    sources['sampler'] = Path(__file__).resolve().parents[1] / 'src/BVC-Users-Connect-Tests/CUUsersFanoutApplicationFixture.class.st'
+    sources['bufferedDiagnostics'] = Path(__file__).with_name('buffered_user_diagnostics.py')
     if args.observe_workunits: sources['workunitObserver'] = Path(__file__).with_name('observe-user-workunits.topaz')
     report['sourceSHA256'] = {key: hashlib.sha256(path.read_bytes()).hexdigest() for key,path in sources.items()}
-    for key,path in sources.items(): shutil.copy2(path, snapshot / (key + path.suffix))
+    for key,path in sources.items():
+        if key == 'sampler': write(snapshot / 'sampler.json', dict(source=path.read_text(),sha256=report['sourceSHA256'][key]))
+        else: shutil.copy2(path, snapshot / (key + path.suffix))
     owner = 'CUFanoutLease'  + uuid.uuid4().hex
     registered = lease = False
     processes, logs, memory = [], [], []
@@ -154,15 +159,6 @@ def main():
             if time.monotonic() >= deadline: raise TimeoutError(str(paths))
             time.sleep(.2)
         return [wait_json(path) for path in paths if path.suffix == '.json']
-    def latest_native():
-        deadline = time.monotonic() + 45
-        while time.monotonic() < deadline:
-            paths = sorted(output.glob('native-[0-9]*.json'), key=lambda path:int(path.stem.split('-')[1]), reverse=True)
-            for path in paths:
-                try: return json.loads(path.read_text())
-                except ValueError: pass
-            time.sleep(.1)
-        raise TimeoutError('No complete native sample')
     def launch(directory, role, **extra):
         config = dict(client_options, role=role, directory=str(directory), prefix=directory.name, **extra)
         configuration = directory / (role + str(extra.get('shard', '')) + '-config.json'); write(configuration, config)
@@ -224,7 +220,8 @@ Smalltalk globals at: {quote(owner)} asSymbol put: run. run snapshot''')
             deadline = time.monotonic() + 45
             while True:
                 status = runtime('status')
-                if status['state'] == 'running': break
+                running={s['identifier'] for w in status['workers'] for s in w['services'] if s['state']=='running' and s['appliedConfigurationVersion']==status['configurationVersion']}
+                if status['state'] == 'running' and {'users','connect_bulk'}<=running: break
                 if time.monotonic() > deadline: raise TimeoutError('Configured Runtime convergence')
                 time.sleep(.2)
             report['started'] = status
@@ -235,7 +232,7 @@ Smalltalk globals at: {quote(owner)} asSymbol put: run. run snapshot''')
             slow = 0 if count == 1 else (1 if count == 8 else 2)
             shards = math.ceil(count / 10); processes = []
             started = time.monotonic(); memory_start = len(memory)
-            native_start = latest_native()['sample']
+            native_start_millis = time.time_ns()/1e6
             launch(directory, 'writer', writeIntervalMillis=args.write_interval_millis); wait_files([directory / 'seed.json'])
             for shard in range(shards): launch(directory, 'observers', shard=shard, start=shard*10, count=min(10, count-shard*10), total=count, slow=slow)
             wait_files([directory / f'ready-{s}.json' for s in range(shards)])
@@ -245,10 +242,9 @@ Smalltalk globals at: {quote(owner)} asSymbol put: run. run snapshot''')
             # depend on watched identities and configured credits, not edit count.
             time.sleep(1); sample_memory(); marker(directory, 'burstB-go')
             wait_files([directory / f'burstB-{s}.json' for s in range(shards)])
+            stalled_start_millis = time.time_ns()/1e6
             time.sleep(1); sample_memory()
-            stalled = latest_native()
-            stalled_pending = sum(feed['pending'] > 0 and feed['publisher'] for feed in stalled['feeds'])
-            write(directory / 'stalled-server.json', stalled)
+            stalled_end_millis = time.time_ns()/1e6
             marker(directory, 'resume')
             wait_files([directory / f'offline-ready-{s}.json' for s in range(shards)])
             marker(directory, 'offline-go'); wait_files([directory / 'offline.json'])
@@ -267,24 +263,15 @@ Smalltalk globals at: {quote(owner)} asSymbol put: run. run snapshot''')
                 assert not client['errors'] and client['stableObjectIdentity']
                 assert client['requestsAtFinalReadiness'] == client['requestsAtEnd']
                 if client['slow']: assert client['stalledNativeStatistics']['records'] == client['stalledNativeStatistics']['capacity']
-            native_end = latest_native()['sample']
-            samples = [wait_json(path) for path in output.glob('native-*.json') if path.name != 'native-latest.json' and native_start <= int(path.stem.split('-')[1]) <= native_end]
-            for sample in samples:
-                assert all(feed['pending'] <= feed['watched'] <= 3 for feed in sample['feeds'])
-                assert sample['publishers'] <= 64 and len(sample['feeds']) <= 64
-                assert sample['native']['1'] <= 128 and sample['native']['8'] <= 128*4080
-                limits = sample.get('driveLimits', dict(calls=32, bytes=4096))
-                assert sample['connectStatistics']['callPeak'] <= limits['calls'] and sample['connectStatistics']['copyPeak'] <= limits['bytes']
+            native_end_millis = time.time_ns()/1e6
             profile = dict(clients=count, slowConsumers=slow, sharedUsers=3, updates=writer['count'], elapsedSeconds=time.monotonic()-started,
                 deliveredHealthySamples=len(latency), latencyFromSubmissionMillis={key:percentile(latency, q) for key,q in [('p50',.5),('p95',.95),('p99',.99),('max',1)]},
                 writerRTTMillis={key:percentile([(w['replyAt']-w['sentAt'])*1000 for w in writer['writes']],q) for key,q in [('p50',.5),('p95',.95),('p99',.99)]},
-                maximumPendingStatesPerFeed=max((feed['pending'] for sample in samples for feed in sample['feeds']),default=0),
-                maximumNativeRecords=max(sample['native']['1'] for sample in samples), maximumNativePayloadBytes=max(sample['native']['8'] for sample in samples),
                 rpcWhileNotificationStalledMillis=[c['rpcWhileNotificationStalledMillis'] for c in clients if c['slow']],
-                serverMemorySamples=memory[memory_start:], nativeSampleRange=[native_start,native_end],
-                slowFeedsRetainingStateAfterHealthyConvergence=stalled_pending, slowNativeStatistics=[c['stalledNativeStatistics'] for c in clients if c['slow']], idleApplicationRequests=0, allClientsConverged=True, stableIdentities=True, reconnectRecovered=True, clientNativeCleanup=True)
+                serverMemorySamples=memory[memory_start:], directory=directory.name,
+                diagnosticWindow=dict(startMillis=native_start_millis,endMillis=native_end_millis,stalledStartMillis=stalled_start_millis,stalledEndMillis=stalled_end_millis), slowNativeStatistics=[c['stalledNativeStatistics'] for c in clients if c['slow']], idleApplicationRequests=0, allClientsConverged=True, stableIdentities=True, reconnectRecovered=True, clientNativeCleanup=True)
             profile.update(burst_evidence(directory))
-            report['profiles'].append(profile); save(); print(str(count) + ' observers: passed', flush=True)
+            report['profiles'].append(profile); save(); print(str(count) + ' observers: client checks passed; buffered diagnostics pending cleanup', flush=True)
         if args.authority == 'gemstone':
             parameters['expectedUsers'] = [state for profile in output.glob(name + '_*') for state in wait_json(profile / 'final.json')]
             report['persistence'] = phase('fanoutVerify')
@@ -330,6 +317,10 @@ self assert: run isFinished. Smalltalk globals removeKey: {quote(owner)} asSymbo
             for log in logs: log.close()
             for key in (output / 'identities').rglob('private-key.der'): key.unlink()
             save()
+    try:
+        report['samplerExport'] = validate_buffered_diagnostics(output, report['profiles'])
+    except Exception as error:
+        report['error'] = repr(error); save(); raise
     report['passed'] = True; save()
     print('Fan-out qualification passed: ' + str(output / 'qualification.json'))
 
