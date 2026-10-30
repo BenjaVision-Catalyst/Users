@@ -47,8 +47,8 @@ def main():
         workload = next((directory/'workload').glob('fanout_users_*_60'))
         writes = json.loads((workload/'writer-result.json').read_text())['writes']
         first_burst = [write for write in writes if write['phase'] == 'burstA.json']
-        begin = round(first_burst[0]['sentAt']*1e6)+offset
-        end = round(first_burst[-1]['replyAt']*1e6)+offset
+        begin = round(min(write['sentAt'] for write in first_burst)*1e6)+offset
+        end = round(max(write['replyAt'] for write in first_burst)*1e6)+offset
         writer_points.extend(dict(case=spec['name'], xMillis=(round(write['replyAt']*1e6)+offset-begin)/1000,
                                   rttMillis=(write['replyAt']-write['sentAt'])*1000) for write in first_burst)
         idle = mix['idleWindows'][0]
@@ -107,7 +107,7 @@ def main():
         case['combinedCommitReductionFactorVsAfter'] = after['primaryCombinedNativeCommits']/case['primaryCombinedNativeCommits']
     result = dict(cases=cases, chartCases=chart_cases, sourcesIdentical=True, plan=plan,
         applicationNonDriveClassCountsIdentical=len({json.dumps(case['applicationNonDriveClassCounts'],sort_keys=True) for case in cases}) == 1,
-        notes=['All cases use fresh configured Runtimes, identical release clients, 60 observers and a paced 100 ms offer schedule.',
+        notes=['All cases use fresh configured Runtimes, identical release clients and 60 observers; offer schedule and concurrency are recorded per case.',
             'Primary native named-series commit windows include setup/teardown and exclude process-name boundaries; they are not per-message transaction counts.',
             'Delivered-state percentiles must be read with coverage, writer admission lag and actual confirmed throughput.',
             'Idle journal counts are conservative visible completions; first-observation timestamps are not commit latency.',

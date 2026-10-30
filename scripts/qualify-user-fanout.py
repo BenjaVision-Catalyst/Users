@@ -18,6 +18,7 @@ import time
 import urllib.request
 import uuid
 from buffered_user_diagnostics import validate_buffered_diagnostics
+from user_saturation import analyze_writer
 
 spec = importlib.util.spec_from_file_location('platform_users', Path(__file__).with_name('qualify-platform-users.py'))
 helpers = importlib.util.module_from_spec(spec)
@@ -44,7 +45,7 @@ def burst_evidence(directory):
         gaps = []
         for phase in ['burstA.json', 'burstB.json']:
             phase_writes = [w for w in writes if w['phase'] == phase]
-            begin, end = phase_writes[0]['sentAt'], phase_writes[-1]['replyAt']
+            begin, end = min(w['sentAt'] for w in phase_writes), max(w['replyAt'] for w in phase_writes)
             for user in {w['user'] for w in phase_writes}:
                 times = [begin] + sorted(event['at'] for event in arrivals if event['user'] == user and begin <= event['at'] <= end) + [end]
                 gaps.extend((b-a)*1000 for a,b in zip(times,times[1:]))
@@ -61,7 +62,7 @@ def burst_evidence(directory):
     burst_seconds = 0
     for phase in ['burstA.json', 'burstB.json']:
         phase_writes = [write for write in writes if write['phase'] == phase]
-        burst_seconds += phase_writes[-1]['replyAt'] - phase_writes[0]['sentAt']
+        burst_seconds += max(w['replyAt'] for w in phase_writes) - min(w['sentAt'] for w in phase_writes)
     reconnected = list(directory.glob('reconnected-*.json'))
     return dict(perHealthyClient=per_client, minimumHealthyCoverage=min(c['deliveredFraction'] for c in per_client), burstLatencyMillis={key:percentile(latencies,q) for key,q in [('p50',.5),('p95',.95),('p99',.99),('max',1)]},
         maximumWriterAdmissionLagMillis=max((w['sentAt']-w.get('offeredAt',w['sentAt']))*1000 for w in offered.values()),
@@ -80,7 +81,8 @@ def main():
     parser.add_argument('--authority', choices=['gt', 'gemstone'], required=True)
     parser.add_argument('--clients', nargs='+', type=int, choices=[1, 8, 32, 60], default=[1, 8, 32, 60])
     parser.add_argument('--build-configuration', choices=['debug', 'release'], default='debug')
-    parser.add_argument('--write-interval-millis', type=float, default=0, help='Paced serial admission; record lag if replies prevent meeting the offered schedule')
+    parser.add_argument('--write-interval-millis', type=float, default=0, help='Paced bounded admission; record lag if replies prevent meeting the offered schedule')
+    parser.add_argument('--writer-concurrency', type=int, choices=[1, 2, 3], default=1, help='Bounded independent User update lanes; default retains serial admission')
     parser.add_argument('--readiness', action='store_true', help='Use native readiness with the configured finite idle fallback')
     parser.add_argument('--observe-workunits', action='store_true', help='GemStone only: copy existing durable execution records in a read-only Gem; preserve retention and transaction boundaries')
     parser.add_argument('--observe-drive-triggers', action='store_true', help='GemStone only: opt-in bounded worker-local drive diagnostics, exported after workload')
@@ -110,13 +112,14 @@ def main():
     parameters['cadenceConfiguration'] = cadence
     parameters['readinessEnabled'] = args.readiness
     parameters['driveTriggers'] = args.observe_drive_triggers
-    report = dict(runtime=name, authority=args.authority, profiles=[], nativeCapacity=64, maximumFeeds=64, maximumUsersPerFeed=3, clientBuildConfiguration=args.build_configuration, offeredWriteIntervalMillis=args.write_interval_millis)
+    report = dict(runtime=name, authority=args.authority, profiles=[], nativeCapacity=64, maximumFeeds=64, maximumUsersPerFeed=3, clientBuildConfiguration=args.build_configuration, offeredWriteIntervalMillis=args.write_interval_millis, writerConcurrency=args.writer_concurrency)
     snapshot = output / 'source-snapshot'; snapshot.mkdir()
     sources = dict(controller=Path(__file__), runtimeConfiguration=Path(__file__).with_name('qualify-platform-users.topaz'),
         swiftWorker=args.apple_package / 'Tests/CatalystUsersTests/NativeFanoutUsersTests.swift',
         swiftTransport=args.apple_package / 'Sources/CatalystConnect/CatalystConnect.swift')
     sources['sampler'] = Path(__file__).resolve().parents[1] / 'src/BVC-Users-Connect-Tests/CUUsersFanoutApplicationFixture.class.st'
     sources['bufferedDiagnostics'] = Path(__file__).with_name('buffered_user_diagnostics.py')
+    sources['saturationAnalysis'] = Path(__file__).with_name('user_saturation.py')
     if args.observe_drive_triggers:
         for diagnostic_class in ['CUUsersDriveTriggerMetrics', 'CUUsersDriveTriggerApplicationFixture']:
             sources[diagnostic_class] = Path(__file__).resolve().parents[1] / 'src/BVC-Users-Connect-Tests' / (diagnostic_class + '.class.st')
@@ -150,7 +153,9 @@ def main():
         write(output / (label + '-response.json'), response)
         if response.get('error') or response.get('result', {}).get('isError'): raise RuntimeError('GT MCP failed: ' + label)
         for block in response.get('result', {}).get('content', []):
-            if block.get('type') == 'text' and 'errorDetails' in json.loads(block['text']): raise RuntimeError('GT MCP failed: ' + label)
+            if block.get('type') == 'text':
+                details = json.loads(block['text'])
+                if 'errorDetails' in details or 'errorMessage' in details: raise RuntimeError('GT MCP failed: ' + label)
     def sample_memory():
         if not server_pids: return
         result = subprocess.run(['ps', '-o', 'pid=,rss=,pcpu=', '-p', ','.join(map(str, server_pids))], capture_output=True, text=True, errors='replace')
@@ -241,7 +246,7 @@ Smalltalk globals at: {quote(owner)} asSymbol put: run. run snapshot''')
             shards = math.ceil(count / 10); processes = []
             started = time.monotonic(); memory_start = len(memory)
             native_start_millis = time.time_ns()/1e6
-            launch(directory, 'writer', writeIntervalMillis=args.write_interval_millis); wait_files([directory / 'seed.json'])
+            launch(directory, 'writer', writeIntervalMillis=args.write_interval_millis, writerConcurrency=args.writer_concurrency); wait_files([directory / 'seed.json'])
             for shard in range(shards): launch(directory, 'observers', shard=shard, start=shard*10, count=min(10, count-shard*10), total=count, slow=slow)
             wait_files([directory / f'ready-{s}.json' for s in range(shards)])
             marker(directory, 'start'); wait_files([directory / f'baseline-{s}.json' for s in range(shards)])
@@ -281,6 +286,7 @@ Smalltalk globals at: {quote(owner)} asSymbol put: run. run snapshot''')
                 serverMemorySamples=memory[memory_start:], directory=directory.name,
                 diagnosticWindow=dict(startMillis=native_start_millis,endMillis=native_end_millis,stalledStartMillis=stalled_start_millis,stalledEndMillis=stalled_end_millis), slowNativeStatistics=[c['stalledNativeStatistics'] for c in clients if c['slow']], idleApplicationRequests=0, allClientsConverged=True, stableIdentities=True, reconnectRecovered=True, clientNativeCleanup=True)
             profile.update(burst_evidence(directory))
+            profile['writerSaturation'] = analyze_writer(writer, args.write_interval_millis)
             report['profiles'].append(profile); save(); print(str(count) + ' observers: client checks passed; buffered diagnostics pending cleanup', flush=True)
         if args.authority == 'gemstone':
             parameters['expectedUsers'] = [state for profile in output.glob(name + '_*') for state in wait_json(profile / 'final.json')]
