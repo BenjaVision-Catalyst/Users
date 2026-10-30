@@ -89,7 +89,7 @@ CUUsersDriveTriggerExamples >> testScanCopiesSlotPositionsAndCandidateCharges [
  metrics recordExecution: self executionFixture.
  scan := (metrics driveReport at: 'rows') first at: 'claimScan'.
  self assert: (scan at: 'entryMatched').
- self assert: (scan at: 'claimVisits') equals: 2.
+ self assert: (scan at: 'claimCandidateCharges') equals: 2.
  self assert: (scan at: 'cursorBefore') equals: 0. self assert: (scan at: 'cursorAfter') equals: 2.
  self assert: ((scan at: 'slotsBefore') first at: 'slot') equals: 3.
  claim stage: #discard.

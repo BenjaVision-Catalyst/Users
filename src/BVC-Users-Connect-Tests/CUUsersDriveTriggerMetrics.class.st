@@ -106,7 +106,7 @@ CUUsersDriveTriggerMetrics >> recordScanFor: row [
  scan := scanEntry copy.
  pushes := ((driveService instVarNamed: 'stats') at: #pushCandidates ifAbsent: [0]) - (scan at: 'pushCandidatesBefore').
  visits := (scan at: 'candidateBudgetBefore') - (driveService instVarNamed: 'candidateBudget') - pushes.
- scan at: 'entryMatched' put: true; at: 'claimVisits' put: visits;
+ scan at: 'entryMatched' put: true; at: 'claimCandidateCharges' put: visits;
  at: 'cursorAfter' put: (driveService instVarNamed: 'cursor'); at: 'slotsAfter' put: self snapshotPendingClaims].
  row at: 'claimScan' put: scan. scanEntry := nil
 ]
