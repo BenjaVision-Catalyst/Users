@@ -57,7 +57,7 @@ CUUsersConnectNativeScenario >> runConfiguration: connectConfiguration cases: ca
  ^ evidence
 ]
 
-{ #category : 'push updates' }
+{ #category : 'native qualification' }
 CUUsersConnectNativeScenario >> runServerConfigurations: specifications directory: directory [
  | configuration orchestrator host services deployments worker usersService connects original prefix results originalGate deadline idleStarts idleChecks parameters fanout cadence |
  parameters := STONJSON fromString: (directory / 'parameters.json') contents.
@@ -115,7 +115,12 @@ CUUsersConnectNativeScenario >> runServerConfigurations: specifications director
  results at: 'zeroIdleReads' put: true; at: 'zeroIdleReceiveRequests' put: true; at: 'idleChecks' put: idleChecks size.
  results at: 'readSamples' put: ((worker workerHandle statistics at: #workUnitExecution) samples count: [:sample | sample workUnitClass == CUReadLiveUserWork]).
  results at: 'createdUsers' put: ((CUUsers allUsers select: [:user | user name beginsWith: prefix]) collect: #name) asArray.
- results at: 'inMemoryFinalizations' put: ((worker workerHandle statistics at: #workUnitExecution) samples select: [:sample | sample workUnitClass == CUUsersFlushWork]) size
+ [| selected |
+ selected := (worker workerHandle statistics at: #workUnitExecution) samples select: [:sample |
+  sample isSuccessful and: [(sample workUnitClass inheritsFrom: CULiveUserWork) and: [#(3 5) includes: sample workUnitClass operation]]].
+ self assert: selected notEmpty.
+ self assert: (selected allSatisfy: [:sample | sample transactionOutcome = #inMemory and: [sample completionRecordingOutcome = #inMemory]]).
+ results at: 'publicationCommitEvidenceSource' put: 'verifiedMutationResultFinalization'; at: 'inMemoryFinalizations' put: selected size] value
  ] ensure: [
   runtime stop. runtime registry unregister: runtime. CUUsersCommitGateMessageFixture gateDirectory: originalGate.
   CUUsers allUsers removeAllSuchThat: [:user | (user name beginsWith: prefix) or: [user creationName beginsWith: prefix]].
