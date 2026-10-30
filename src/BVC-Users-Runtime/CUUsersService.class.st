@@ -24,6 +24,11 @@ CUUsersService class >> requiredCapabilities [
  ^ {CRServiceActivationCapability}
 ]
 
+{ #category : 'result publication' }
+CUUsersService >> closePublicationFeeds [
+ feeds ifNotNil: [feeds valuesDo: #close]
+]
+
 { #category : 'push updates' }
 CUUsersService >> createUser: aUser [
  (self isCurrentResultEpoch: self resultEpoch) ifFalse: [CRCapabilityDeniedException signal: 'Users service is not active.'].
@@ -68,9 +73,15 @@ CUUsersService >> getUser: exactName [
  ^ CUUsers getUser: exactName
 ]
 
-{ #category : 'push updates' }
+{ #category : 'result publication' }
 CUUsersService >> liveUser: change operation: code principal: principal [
+ ^ self liveUser: change operation: code principal: principal stagingChanges: true
+]
+
+{ #category : 'result publication' }
+CUUsersService >> liveUser: change operation: code principal: principal stagingChanges: stage [
  | result feed |
+ (stage == true or: [stage == false]) ifFalse: [self error: 'Publication staging policy must be Boolean'].
  (self isCurrentResultEpoch: self resultEpoch) ifFalse: [CRCapabilityDeniedException signal: 'Users service is not active.'].
  (self configuration notNil and: [self configuration isAuthoritative]) ifFalse: [CRCapabilityDeniedException signal: 'Users service is not authoritative.'].
  (#(7 8 9) includes: code) ifTrue: [
@@ -85,7 +96,7 @@ CUUsersService >> liveUser: change operation: code principal: principal [
   code = 9 ifTrue: [feed unregister: change userIdentifier. ^ CULiveUserState outcome: 'unwatched'].
   feed acknowledge: change userIdentifier revision: change expectedRevision. ^ feed].
  result := CUUsers liveUser: change operation: code principal: principal.
- ((#('created' 'updated') includes: result outcome) and: [#(3 5) includes: code]) ifTrue: [self stageUser: result userIdentifier].
+ ((#('created' 'updated') includes: result outcome) and: [#(3 5) includes: code]) ifTrue: [stage ifTrue: [self stageUser: result userIdentifier]].
  ^ result
 ]
 

@@ -22,11 +22,17 @@ CULiveUserWork class >> requiresTransaction [
  ^ true
 ]
 
-{ #category : 'live users' }
+{ #category : 'result publication' }
 CULiveUserWork >> executeInContext: context [
- | caller |
+ | caller capability completion |
  caller := CCObjectCaller from: context.
- ^ [probe == true ifTrue: [true] ifFalse: [(context capability: CUUsersCapability) liveUser: change operation: self class operation principal: caller identity]] ensure: [change := nil]
+ ^ [probe == true ifTrue: [true] ifFalse: [
+  capability := context capability: CUUsersCapability.
+  completion := context envelope resultCompletion.
+  (completion isKindOf: CUUsersMutationResultCompletion)
+   ifTrue: [capability liveUser: change operation: self class operation principal: caller identity completion: completion in: context]
+   ifFalse: [capability liveUser: change operation: self class operation principal: caller identity]]]
+ ensure: [change := nil]
 ]
 
 { #category : 'live users' }

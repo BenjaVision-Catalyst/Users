@@ -22,7 +22,7 @@ BaselineOfCatalystUsers >> baseline: spec [
   spec package: 'BVC-Users-Runtime' with: [spec requires: #('BVC-Users-Core' 'CatalystRuntime')].
   spec package: 'BVC-Users-Tests' with: [spec requires: #('BVC-Users-Runtime' 'CatalystRuntime tests')].
   spec package: 'BVC-Users-Connect-Core' with: [spec requires: #('BVC-Users-Runtime' 'CatalystConnect')].
-  spec package: 'BVC-Users-Connect-Tests' with: [spec requires: #('BVC-Users-Connect-Core')].
+  spec package: 'BVC-Users-Connect-Tests' with: [spec requires: #('BVC-Users-Connect-Core' 'CatalystConnect tests')].
   spec group: 'connect' with: #('runtime' 'BVC-Users-Connect-Core').
   spec group: 'tests-connect' with: #('connect' 'BVC-Users-Connect-Tests').
   spec group: 'core' with: #('BVC-Users-Core').

@@ -61,14 +61,23 @@ RPCs. Latest state is coalesced by User identity until native publication accept
 a byte copy; QUIC then handles reliable delivery and flow control. A later revision
 is never removed by acceptance of an earlier one. This does not retain event history.
 
-The service stages identities and submits one coalesced publication WorkUnit over
-its existing Runtime route. That work rereads authoritative state. Its completion
-updates feeds only after Runtime finalization and, in GemStone, confirmed commit.
-Staging can survive a failed body without leaking that body's values: the follow-up
-read sees the rolled-back revision and unchanged states are suppressed. Native I/O
-still runs only on Connect's original owner. Persistent publishers use the existing idle
-schedule and bounded Connect drive budgets. Slow consumers retain bounded state
-without blocking the independent RPC stream.
+Live create/update bindings select one Users result completion for both the
+response and feed publication. The WorkUnit arms that completion through its bound
+Users capability before mutation. After Runtime verifies successful finalization
+and, in GemStone, confirmed outer commit and completion recording, the same callback
+validates/encodes the result, copies its state into the existing bounded feeds and
+completes the response. No separate publication WorkUnit executes on this path.
+Feed snapshots share no mutable text with the mutation result. Callback errors close
+feeds for recovery and never replay a committed mutation.
+
+Callers without the Users publication completion retain the coalesced reread path:
+the service stages identities and routes a transactional publication WorkUnit.
+Its completion publishes reread state only after verified finalization. A direct
+completion does not drain unrelated staged identities. Probes, reads, recovery,
+legacy snapshot calls and subscription setup retain their existing completions.
+Native I/O still runs only on Connect's original owner. Persistent publishers use
+the existing progress schedule and bounded drive budgets. Slow consumers retain
+bounded state without blocking the independent RPC stream.
 
 `CUUsersConfiguration` adds maximumFeeds (default16), maximumUsersPerFeed (256),
 and feedLeaseMillis (60000) for unclaimed feeds. Active publishers do not expire
@@ -179,6 +188,13 @@ Direct Rowan loading and physical iOS hardware execution remain unqualified.
 
 See [live User qualification](../conformance/live-users-2026-10-29.json) for the
 three-platform run, native persistence checks, source verification and build scope.
+
+Publication commit evidence now follows successful live mutation samples and is
+labeled `publicationCommitEvidenceSource: verifiedMutationResultFinalization`.
+`committedMutationSamples` is the explicit count. Existing report-field aliases
+retain that count for older evidence consumers; they are not counts of delivered
+notifications. Actual push, held-commit and rollback assertions remain in the native
+clients and independent-session checks.
 
 For the dedicated push suite, add `--push-only`; use `--authority gt` to run the
 same native clients against a configured GT authority. GT's owner creates/stops

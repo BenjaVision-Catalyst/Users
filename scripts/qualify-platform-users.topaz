@@ -87,9 +87,9 @@ phase = 'verifyPush' ifTrue: [
  selected := samples count: [:sample | sample workUnitClass == CUReadLiveUserWork].
  report at: 'subscriptionSetupAndProbeSamples' put: (samples count: [:sample | sample workUnitClass == CUReceiveUserChangesWork]).
  report at: 'readAndProbeSamples' put: selected; at: 'noPeriodicReads' put: true.
- selected := samples select: [:sample | sample workUnitClass == CUUsersFlushWork].
+ selected := samples select: [:sample | sample isSuccessful and: [(sample workUnitClass inheritsFrom: CULiveUserWork) and: [#(3 5) includes: sample workUnitClass operation]]].
  (selected notEmpty and: [selected allSatisfy: [:sample | sample isSuccessful and: [sample transactionOutcome = #committed and: [sample completionRecordingOutcome = #recorded]]]]) ifFalse: [self error: 'Push publication commit evidence missing'].
- report at: 'committedPublications' put: selected size; at: 'expectedUsersPersisted' put: true].
+ report at: 'publicationCommitEvidenceSource' put: 'verifiedMutationResultFinalization'; at: 'committedMutationSamples' put: selected size; at: 'committedPublications' put: selected size; at: 'expectedUsersPersisted' put: true].
 phase = 'verify' ifTrue: [
  root := UserGlobals at: key.
  created := CUUsers allUsers select: [:user | user name beginsWith: (parameters at: 'prefix')].
@@ -124,10 +124,10 @@ phase = 'fanoutVerify' ifTrue: [
   (user name = (state at: 'name') and: [user revision = (state at: 'revision')]) ifFalse: [self error: 'Final fan-out state was not persisted']].
  hosts := runtime nativeHosts values select: [:host | ((runtime publications at: host workerIdentifier) serviceHandleForIdentifier: #users) notNil].
  (hosts size = 1 and: [hosts first class == CRGemStoneWorkerHost]) ifFalse: [self error: 'Configured default transactional worker required'].
- samples := hosts first executionMetrics samples select: [:sample | sample workUnitClass == CUUsersFlushWork].
+ samples := hosts first executionMetrics samples select: [:sample | sample isSuccessful and: [(sample workUnitClass inheritsFrom: CULiveUserWork) and: [#(3 5) includes: sample workUnitClass operation]]].
  (samples notEmpty and: [samples allSatisfy: [:sample | sample isSuccessful and: [sample transactionOutcome = #committed and: [sample completionRecordingOutcome = #recorded]]]]) ifFalse: [self error: 'Fan-out publication commit evidence missing'].
  report at: 'expectedUsersPersisted' put: true; at: 'independentGemRead' put: true;
-  at: 'userCount' put: created size; at: 'committedPublicationSamplesRetained' put: samples size;
+  at: 'userCount' put: created size; at: 'publicationCommitEvidenceSource' put: 'verifiedMutationResultFinalization'; at: 'committedMutationSamples' put: samples size; at: 'committedPublicationSamplesRetained' put: samples size;
   at: 'defaultTransactionalWorker' put: true].
 phase = 'cleanup' ifTrue: [
  runtime ifNotNil: [self error: 'Stop and remove the owned Runtime first'].

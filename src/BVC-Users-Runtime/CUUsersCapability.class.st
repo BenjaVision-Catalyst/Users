@@ -50,3 +50,34 @@ CUUsersCapability >> liveUser: change operation: code principal: principal [
  (service isCurrentResultEpoch: epoch) ifFalse: [CRCapabilityDeniedException signal: 'Users capability has expired.'].
  ^ service liveUser: change operation: code principal: principal
 ]
+
+{ #category : 'result publication' }
+CUUsersCapability >> liveUser: change operation: code principal: principal completion: completion in: context [
+ (service isCurrentResultEpoch: epoch) ifFalse: [CRCapabilityDeniedException signal: 'Users capability has expired.'].
+ ((context capability: CUUsersCapability) == self and: [context envelope resultCompletion == completion]) ifFalse: [self error: 'Bound Users result completion required'].
+ completion preparePublicationUsing: self in: context.
+ ^ service liveUser: change operation: code principal: principal stagingChanges: false
+]
+
+{ #category : 'result publication' }
+CUUsersCapability >> publicationFailedFor: completion in: context onWorker: worker [
+ self verifyPublicationCompletion: completion in: context onWorker: worker.
+ service closePublicationFeeds
+]
+
+{ #category : 'result publication' }
+CUUsersCapability >> publishCommittedUser: state completion: completion in: context onWorker: worker [
+ self verifyPublicationCompletion: completion in: context onWorker: worker.
+ state class == CULiveUserState ifFalse: [self error: 'Bounded live User state required'].
+ (#('created' 'updated') includes: state outcome) ifFalse: [^ self].
+ service publishChanges: {(CULiveUserState from: state outcome: 'current')} epoch: epoch
+]
+
+{ #category : 'result publication' }
+CUUsersCapability >> verifyPublicationCompletion: completion in: context onWorker: worker [
+ ((worker isKindOf: CRAbstractWorker) and: [
+  (completion isKindOf: CRWorkUnitResultCompletion) and: [
+  (worker isCompletingResult: completion in: context) and: [
+  (context capability: CUUsersCapability) == self and: [service isCurrentResultEpoch: epoch]]]])
+ ifFalse: [self error: 'Current Users publication completion required.']
+]

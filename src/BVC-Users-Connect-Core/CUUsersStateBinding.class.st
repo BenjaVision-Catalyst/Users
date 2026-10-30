@@ -12,3 +12,10 @@ Class {
 CUUsersStateBinding >> acceptsInMemoryFinalization [
  ^ true
 ]
+
+{ #category : 'result publication' }
+CUUsersStateBinding >> resultCompletionFor: response probe: isProbe [
+ (isProbe not and: [#(3 5) includes: self operation]) ifTrue: [
+  ^ CUUsersMutationResultCompletion new binding: self response: response probe: false].
+ ^ super resultCompletionFor: response probe: isProbe
+]

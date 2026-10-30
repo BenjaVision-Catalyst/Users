@@ -1,7 +1,7 @@
 RwSimpleProjectLoadComponentV2 {
  #name : 'ConnectTests',
- #projectNames : [],
+ #projectNames : [ 'CatalystRuntimeTests', 'CatalystConnectObjectTests' ],
  #componentNames : [ 'Connect' ],
  #packageNames : [ 'BVC-Users-Connect-Tests' ],
- #comment : 'Optional Users object contracts and native fault-injection composition; requires SUnit, with no GT scenario in GemStone'
+ #comment : 'Optional Users object contracts and native fault-injection composition; includes portable Runtime/Connect fixtures, with no GT scenario in GemStone'
 }
